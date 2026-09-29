@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.4</title>
+<title>WWE x Roblox Community Online v4.4.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -152,7 +152,20 @@ async function commitAllChanges(){
    const r=await sb.from(d.table).delete().eq('id',d.id);
    if(r.error){alert('SAVE FAILED — Delete: '+r.error.message);return false}
   }
-  if(db.users.length)ops.push(['Accounts',sb.from('profiles').upsert(db.users.map(x=>({id:x.id,username:x.username,display_name:x.displayName,role:x.role,superstar_id:x.superstarId||null})))]);
+  if(db.users.length){
+   ops.push(['Accounts',{
+    then: async function(resolve){
+     try{
+      for(const x of db.users){
+       const patch={username:x.username,display_name:x.displayName,role:x.role,superstar_id:x.superstarId||null};
+       const r=await sb.from('profiles').update(patch).eq('id',x.id);
+       if(r.error){resolve({error:r.error});return}
+      }
+      resolve({error:null});
+     }catch(error){resolve({error})}
+    }
+   }]);
+  }
   if(db.superstars.length)ops.push(['Superstars',sb.from('superstars').upsert(db.superstars.map(x=>({id:x.id,name:x.name,nickname:x.nickname||null,brand:x.brand||null,status:x.status||null,finisher:x.finisher||null,signature:x.signature||null,theme:x.theme||null,debut:x.debut||null,height:x.height||null,weight:x.weight||null,wins:Number(x.wins||0),losses:Number(x.losses||0),image:x.image||null})))]);
   if(db.championships.length)ops.push(['Championships',sb.from('championships').upsert(db.championships.map(x=>({id:x.id,name:x.name,brand:x.brand||null,status:x.status||null,image:x.image||null})))]);
   if(db.champions.length)ops.push(['Champions',sb.from('champions').upsert(db.champions.map(x=>({id:x.id,superstar_id:x.superstarId,title_id:x.titleId,date_won:x.dateWon,image:x.image||null,notes:x.notes||null})))]);
