@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.2</title>
+<title>WWE x Roblox Community Online v4.2.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -111,6 +111,7 @@ async function loadOnlineData(){
   sb.from('news').select('*').order('published_at',{ascending:false})
  ];
  const [s,t,c,hist,sh,nw]=await Promise.all(reqs);
+ [s,t,c,hist,sh,nw].forEach((r,i)=>{if(r.error)console.error(['superstars','championships','champions','champion_history','shows','news'][i],r.error)});
  db.superstars=mapRows(s.data);
  db.championships=mapRows(t.data);
  db.champions=mapRows(c.data,'champions');
@@ -148,16 +149,21 @@ function signupDetails(){
  signupForm.onsubmit=async e=>{e.preventDefault();let f=signupForm;let {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{username:f.username.value.trim(),display_name:f.displayName.value.trim()}}});if(error){alert(error.message);return}if(!data.session){closeModal();alert('Account created. Check your email if email confirmation is enabled, then log in.');return}await finishAuth(data.user);closeModal();enter()};
 }
 async function finishAuth(user){
- let {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).single();
- if(error||!p){alert('Profile could not be loaded.');return false}
+ let {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+ if(error){console.error('Profile load:',error);alert('Your account signed in, but the WxRC profile could not be loaded: '+error.message);return false}
+ if(!p){alert('Your login exists, but no WxRC profile is linked to it. Contact a WxRC Owner.');return false}
  current={id:p.id,username:p.username||'',displayName:p.display_name||'User',role:p.role||'WxRC Superstar',superstarId:p.superstar_id||''};
- await loadOnlineData();return true;
+ try{await loadOnlineData()}catch(e){console.error('Data load:',e)}
+ return true;
 }
 async function login(){
  loginError.textContent='Signing in...';
- let {data,error}=await sb.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});
- if(error){loginError.textContent=error.message;return}
- if(await finishAuth(data.user)){loginError.textContent='';enter()}
+ try{
+  let {data,error}=await sb.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});
+  if(error){loginError.textContent=error.message;return}
+  if(!data?.user){loginError.textContent='Login failed: no user returned.';return}
+  if(await finishAuth(data.user)){loginError.textContent='';enter()}
+ }catch(e){console.error(e);loginError.textContent='Login error: '+(e?.message||e)}
 }
 async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};await loadOnlineData();enter()}
 function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
