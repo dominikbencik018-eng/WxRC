@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.2.1</title>
+<title>WWE x Roblox Community Online v4.2.2</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -102,26 +102,42 @@ function mapRows(rows,kind){
  });
 }
 async function loadOnlineData(){
- const reqs=[
-  sb.from('superstars').select('*').order('created_at'),
-  sb.from('championships').select('*').order('created_at'),
-  sb.from('champions').select('*').order('created_at'),
-  sb.from('champion_history').select('*').order('created_at'),
-  sb.from('shows').select('*').order('created_at'),
-  sb.from('news').select('*').order('published_at',{ascending:false})
+ const specs=[
+  ['superstars','superstars','created_at'],
+  ['championships','championships','created_at'],
+  ['champions','champions','created_at'],
+  ['champion_history','history','created_at'],
+  ['shows','shows','created_at'],
+  ['news','news','published_at']
  ];
- const [s,t,c,hist,sh,nw]=await Promise.all(reqs);
- [s,t,c,hist,sh,nw].forEach((r,i)=>{if(r.error)console.error(['superstars','championships','champions','champion_history','shows','news'][i],r.error)});
- db.superstars=mapRows(s.data);
- db.championships=mapRows(t.data);
- db.champions=mapRows(c.data,'champions');
- db.championHistory=mapRows(hist.data,'history');
- db.shows=mapRows(sh.data,'shows');
- db.news=(nw.data||[]).map(x=>({id:x.id,title:x.title||'',content:x.content||'',author:x.author||'',image:x.image||'',publishedAt:x.published_at||x.created_at||''}));
+ const results=await Promise.all(specs.map(async ([table,kind,order])=>{
+  try{
+   const r=await sb.from(table).select('*').order(order,{ascending:table==='news'?false:true});
+   if(r.error){console.error(table,r.error);return {table,kind,ok:false,error:r.error}}
+   return {table,kind,ok:true,data:r.data||[]};
+  }catch(error){console.error(table,error);return {table,kind,ok:false,error}}
+ }));
+ for(const r of results){
+  if(!r.ok)continue;
+  if(r.table==='superstars')db.superstars=mapRows(r.data);
+  else if(r.table==='championships')db.championships=mapRows(r.data);
+  else if(r.table==='champions')db.champions=mapRows(r.data,'champions');
+  else if(r.table==='champion_history')db.championHistory=mapRows(r.data,'history');
+  else if(r.table==='shows')db.shows=mapRows(r.data,'shows');
+  else if(r.table==='news')db.news=r.data.map(x=>({id:x.id,title:x.title||'',content:x.content||'',author:x.author||'',image:x.image||'',publishedAt:x.published_at||x.created_at||''}));
+ }
  if(current && isOwner()){
-  const [p,tr,g]=await Promise.all([sb.from('profiles').select('*'),sb.from('transactions').select('*').order('created_at'),sb.from('gimmick_submissions').select('*').order('created_at')]);
-  db.users=mapRows(p.data,'profiles'); db.transactions=mapRows(tr.data,'transactions'); db.gimmickSubmissions=mapRows(g.data,'gimmicks');
- } else { db.users=[]; db.transactions=[]; db.gimmickSubmissions=[]; }
+  const extra=await Promise.allSettled([
+   sb.from('profiles').select('*'),
+   sb.from('transactions').select('*').order('created_at'),
+   sb.from('gimmick_submissions').select('*').order('created_at')
+  ]);
+  const vals=extra.map(x=>x.status==='fulfilled'?x.value:null);
+  if(vals[0]&&!vals[0].error)db.users=mapRows(vals[0].data,'profiles');
+  if(vals[1]&&!vals[1].error)db.transactions=mapRows(vals[1].data,'transactions');
+  if(vals[2]&&!vals[2].error)db.gimmickSubmissions=mapRows(vals[2].data,'gimmicks');
+ }
+ return results;
 }
 async function save(){
  if(!canEdit())return;
@@ -165,7 +181,7 @@ async function login(){
   if(await finishAuth(data.user)){loginError.textContent='';enter()}
  }catch(e){console.error(e);loginError.textContent='Login error: '+(e?.message||e)}
 }
-async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};await loadOnlineData();enter()}
+async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};enter();try{await loadOnlineData();renderNav();render()}catch(e){console.error(e)}}
 function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
 async function logout(){await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
@@ -180,9 +196,8 @@ function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new F
 
 async function refreshApp(){
  toastMsg('Refreshing...');
- await loadOnlineData();
- renderNav();render();
- toastMsg('Updated');
+ try{await loadOnlineData();renderNav();render();toastMsg('Updated')}
+ catch(e){console.error(e);toastMsg('Refresh failed')}
 }
 function cropImageFile(file,aspect=1){
  return new Promise((resolve,reject)=>{
