@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.0.2</title>
+<title>WWE x Roblox Community Online v4.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -88,7 +88,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
 const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[]}, current=null, page='Home';
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[]}, current=null, page='News';
 
 function mapRows(rows,kind){
  return (rows||[]).map(x=>{
@@ -107,14 +107,16 @@ async function loadOnlineData(){
   sb.from('championships').select('*').order('created_at'),
   sb.from('champions').select('*').order('created_at'),
   sb.from('champion_history').select('*').order('created_at'),
-  sb.from('shows').select('*').order('created_at')
+  sb.from('shows').select('*').order('created_at'),
+  sb.from('news').select('*').order('published_at',{ascending:false})
  ];
- const [s,t,c,hist,sh]=await Promise.all(reqs);
+ const [s,t,c,hist,sh,nw]=await Promise.all(reqs);
  db.superstars=mapRows(s.data);
  db.championships=mapRows(t.data);
  db.champions=mapRows(c.data,'champions');
  db.championHistory=mapRows(hist.data,'history');
  db.shows=mapRows(sh.data,'shows');
+ db.news=(nw.data||[]).map(x=>({id:x.id,title:x.title||'',content:x.content||'',author:x.author||'',image:x.image||'',publishedAt:x.published_at||x.created_at||''}));
  if(current && isOwner()){
   const [p,tr,g]=await Promise.all([sb.from('profiles').select('*'),sb.from('transactions').select('*').order('created_at'),sb.from('gimmick_submissions').select('*').order('created_at')]);
   db.users=mapRows(p.data,'profiles'); db.transactions=mapRows(tr.data,'transactions'); db.gimmickSubmissions=mapRows(g.data,'gimmicks');
@@ -158,16 +160,32 @@ async function login(){
  if(await finishAuth(data.user)){loginError.textContent='';enter()}
 }
 async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};await loadOnlineData();enter()}
-function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
+function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
 async function logout(){await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
-const nav=['Home','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
+const nav=['News','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
 const navIcons={'Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
 function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){page=n;renderNav();render()}
-function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Home':home,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};try{(map[page]||home)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'News':news,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
+function news(){
+ const items=(db.news||[]).slice().sort((a,b)=>new Date(b.publishedAt||0)-new Date(a.publishedAt||0));
+ view.innerHTML=`<div class="sectionHead"><div><h2>WxRC News</h2><div class="sub">Official WWE x Roblox Community updates and announcements.</div></div>${canEdit()?`<button class="btn primary" onclick="editNews()">+ Add News</button>`:''}</div>
+ <div class="grid">${items.map(n=>`<div class="card">${n.image?`<img class="cover" src="${n.image}" alt="">`:''}<div class="sub">${n.publishedAt?new Date(n.publishedAt).toLocaleString():''}${n.author?' • '+esc(n.author):''}</div><h3 style="margin:8px 0">${esc(n.title)}</h3><div style="white-space:pre-wrap;line-height:1.55">${esc(n.content)}</div>${canEdit()?`<div class="rowActions" style="margin-top:14px"><button class="btn small blue" onclick="editNews('${n.id}')">Edit</button><button class="btn small danger" onclick="deleteNews('${n.id}')">Delete</button></div>`:''}</div>`).join('')||`<div class="card"><h3>No news yet</h3><div class="sub">Official WxRC updates will appear here.</div></div>`}</div>`;
+}
+function editNews(id=''){
+ if(!canEdit())return;
+ const o=(db.news||[]).find(x=>x.id===id)||{};
+ openModal(id?'Edit News':'Add News',`<form id="newsForm">${formField('title',o.title||'')}<div class="field"><label>NEWS</label><textarea name="content" rows="7" required>${esc(o.content||'')}</textarea></div>${formField('image',o.image||'')}<button class="btn primary full">${id?'Save Changes':'Publish News'}</button></form>`);
+ newsForm.onsubmit=async e=>{e.preventDefault();let row={title:newsForm.title.value.trim(),content:newsForm.content.value.trim(),image:newsForm.image.value.trim()||null,author:current.displayName||current.username||'WxRC Management'};let res=id?await sb.from('news').update(row).eq('id',id).select().single():await sb.from('news').insert(row).select().single();if(res.error){alert(res.error.message);return}let n=res.data;if(id){let i=db.news.findIndex(x=>x.id===id);if(i>=0)db.news[i]={id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at}}else db.news.unshift({id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at});closeModal();news();toastMsg(id?'News updated':'News published')};
+}
+async function deleteNews(id){
+ if(!canEdit()||!confirm('Delete this news post?'))return;
+ let {error}=await sb.from('news').delete().eq('id',id);if(error){alert(error.message);return}
+ db.news=db.news.filter(x=>x.id!==id);news();toastMsg('News deleted');
+}
 function home(){let s=stats();view.innerHTML=`<div class="hero"><span class="badge red">WWE x ROBLOX COMMUNITY</span><h1>Community Control Center</h1><div class="muted">View the roster, champions, shows and WWE x Roblox Community information in one place.</div></div><div class="grid">${[['Superstars',s.superstars],['Current Champions',s.champions],['Shows',s.shows]].map(x=>`<div class="card stat"><span class="muted">${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</div><div class="sectionHead"><h2>Current Champions</h2></div>${champList(false)}`}
 function img(src,name){return src?`<img class="thumb" src="${esc(src)}">`:`<div class="thumb avatar">${esc(name?.[0]||'?')}</div>`}
 function superstars(){view.innerHTML=`<div class="sectionHead"><div><h2>Superstars</h2><div class="sub">WWE x Roblox Community roster profiles.</div></div>${canEdit()?`<button class="btn primary" onclick="editSuperstar()">+ Add Superstar</button>`:''}</div><div class="superGrid">${db.superstars.map(s=>`<div class="superCard" onclick="profile('${s.id}')">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge ${s.status==='Active'?'green':''}">${esc(s.status||'Active')}</span><h3>${esc(s.name)}</h3><div class="sub">${esc(s.nickname||'WWE Superstar')} · ${esc(s.brand||'Unassigned')}</div>${canEdit()?`<div style="margin-top:10px"><button class="btn small blue" onclick="event.stopPropagation();editSuperstar('${s.id}')">✎ Edit Superstar</button> <button class="btn small danger" onclick="event.stopPropagation();del('superstars','${s.id}')">Delete</button></div>`:''}</div></div>`).join('')||empty()}</div>`}
@@ -181,7 +199,7 @@ function submitGimmick(){
   e.preventDefault();let f=gimmickForm;
   if(isGuest()){alert('Please create an account or log in to submit a gimmick.');return}
   let {error}=await sb.from('gimmick_submissions').insert({user_id:current.id,name:f.name.value.trim(),nickname:f.nickname.value.trim()||null,brand:f.brand.value||null,status:f.status.value||null,finisher:f.finisher.value.trim()||null,signature:f.signature.value.trim()||null,theme:f.theme.value.trim()||null,debut:f.debut.value||null,height:f.height.value.trim()||null,weight:f.weight.value.trim()||null,notes:f.notes.value.trim()||null});
-  if(error){alert(error.message);return}view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('Home')">Done</button></div>`;
+  if(error){alert(error.message);return}view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('News')">Done</button></div>`;
  };
 }
 
@@ -227,7 +245,7 @@ function storylines(){generic('Storylines','Keep creative plans and storyline no
 function contracts(){generic('Contracts','Manage Superstar and Staff contracts.','contracts',['name','person','value','startDate','endDate','status'])}
 function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(balances[t.person]||0)+Number(t.amount||0));view.innerHTML=`<div class="sectionHead"><div><h2>WWE Coins</h2><div class="sub">Community economy and transaction history.</div></div>${canEdit()?`<button class="btn primary" onclick="editTransaction()">+ Transaction</button>`:''}</div><div class="grid">${Object.entries(balances).map(([p,b])=>`<div class="card stat"><span class="muted">${esc(p)}</span><strong>${b}</strong><span class="badge gold">WWE COINS</span></div>`).join('')||empty()}</div><div class="sectionHead"><h3>Transactions</h3></div><div class="list">${db.transactions.slice().reverse().map(t=>`<div class="row"><div><b>${esc(t.person)}</b><div class="sub">${esc(t.note||'Transaction')} · ${esc(t.date||'')}</div></div><b>${Number(t.amount)>0?'+':''}${Number(t.amount)}</b></div>`).join('')||empty()}</div>`}
 function settings(){
- if(!isOwner()){go('Home');return}
+ if(!isOwner()){go('News');return}
  let subs=db.gimmickSubmissions||[];
  view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Online Owner / Admin management.</div></div></div>
  <div class="settingsGroup"><h3>Account Management</h3><div class="sub">New users create their account through Sign Up. Owner/Admin can change their role and linked Superstar here.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
