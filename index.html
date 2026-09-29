@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community v3.8</title>
+<title>WWE x Roblox Community Online v4.0</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -51,13 +51,14 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 
 @media(max-width:760px){.shell{display:block}.side{display:none}.content{padding:17px 14px 90px}.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.hero h1{font-size:27px}.mobilebar{display:flex;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);left:10px;right:10px;background:#0b0c10f2;backdrop-filter:blur(15px);border:1px solid #292d35;border-radius:16px;z-index:10;overflow-x:auto;padding:7px 8px;box-shadow:0 12px 30px #0008}.mobilebar button{min-width:82px;border:0;background:transparent;color:#aaa;padding:7px 6px;font-size:10px;line-height:14px}.mobilebar button.active{color:#fff}.profile{grid-template-columns:1fr}.profile img{width:100%;height:250px}.two{grid-template-columns:1fr}.row{align-items:flex-start}.rowActions{max-width:100px}.champCard{grid-template-columns:62px 1fr}.grid .card{padding:13px}.superGrid,.titleGrid{grid-template-columns:1fr}.superCard,.superCard img{height:390px}.titleCard,.titleCard>img{height:420px}.historyHero,.historyHero img{height:430px}.historyName{font-size:27px}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="login" class="login">
   <div class="loginCard">
     <div class="brand"><div><span class="mark">WWE</span><span class="slash"></span></div><div><div class="brandText">WWE x Roblox Community</div><div class="sub">Community Management System</div></div></div>
     <h1>Welcome back</h1><div class="sub">Sign in as a WWE Superstar or WWE Staff member.</div>
-    <div class="field"><label>USERNAME</label><input id="loginUser" autocomplete="username"></div>
+    <div class="field"><label>EMAIL</label><input id="loginUser" type="email" autocomplete="email"></div>
     <div class="field"><label>PASSWORD</label><input id="loginPass" type="password" autocomplete="current-password"></div>
     <button class="btn primary full" onclick="login()">Log In</button>
 <button class="btn ghost full" style="margin-top:9px" onclick="openSignup()">Sign Up / Create an Account</button>
@@ -84,47 +85,82 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const KEY='wweRobloxCommunityV2';
-const seed={
- users:[{id:'u1',username:'admin',password:'admin',displayName:'WxRC Owner',role:'WxRC Owner',superstarId:''}],
- superstars:[
- {id:'s1',name:'Rhea Ripley',brand:'RAW',status:'Active',nickname:'The Eradicator',finisher:'Riptide',signature:'Prism Trap',theme:'',debut:'',height:'',weight:'',wins:0,losses:0,image:''},
- {id:'s2',name:'Ronda Rousey',brand:'RAW',status:'Active',nickname:'The Baddest Woman on the Planet',finisher:'Piper’s Pit',signature:'Armbar',theme:'',debut:'',height:'',weight:'',wins:0,losses:0,image:''}
- ],
- championships:[{id:'t1',name:"Women's World Championship",brand:'RAW',status:'Active',image:''},{id:'t2',name:"Women's Tag Team Championship",brand:'Cross-brand',status:'Active',image:''}],
- champions:[],
- shows:[{id:'sh1',name:'RAW',date:'',time:'',status:'Upcoming',venue:''},{id:'sh2',name:'SmackDown',date:'',time:'',status:'Upcoming',venue:''}],
- matches:[],rivalries:[],storylines:[],contracts:[],transactions:[],signupCode:'246810'
-};
-let db=load(), current=null, page='Home';
-if(!db.championHistory)db.championHistory=[];
-if(!db.champions)db.champions=[];
-if(!db.gimmickSubmissions)db.gimmickSubmissions=[];
-if(!/^\d{6}$/.test(db.signupCode||''))db.signupCode='246810';
-const nav=['Home','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
-function load(){try{return {...structuredClone(seed),...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){return structuredClone(seed)}}
-function save(){localStorage.setItem(KEY,JSON.stringify(db))}
-function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
+const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[]}, current=null, page='Home';
+
+function mapRows(rows,kind){
+ return (rows||[]).map(x=>{
+  if(kind==='profiles')return {id:x.id,username:x.username||'',displayName:x.display_name||'',role:x.role||'WxRC Superstar',superstarId:x.superstar_id||''};
+  if(kind==='champions')return {id:x.id,superstarId:x.superstar_id,titleId:x.title_id,dateWon:x.date_won,image:x.image||'',notes:x.notes||''};
+  if(kind==='history')return {id:x.id,superstarId:x.superstar_id,superstarName:x.superstar_name||'',titleId:x.title_id,dateWon:x.date_won,dateLost:x.date_lost||'',image:x.image||'',notes:x.notes||''};
+  if(kind==='shows')return {id:x.id,name:x.name||'',date:x.show_date||'',time:x.show_time||'',status:x.status||'',venue:x.venue||'',image:x.image||''};
+  if(kind==='transactions')return {id:x.id,person:x.person||'',amount:x.amount||0,note:x.note||'',date:x.transaction_date||''};
+  if(kind==='gimmicks')return {id:x.id,userId:x.user_id||'',name:x.name||'',nickname:x.nickname||'',brand:x.brand||'',status:x.status||'',finisher:x.finisher||'',signature:x.signature||'',theme:x.theme||'',debut:x.debut||'',height:x.height||'',weight:x.weight||'',notes:x.notes||'',submittedBy:'Online User'};
+  return x;
+ });
+}
+async function loadOnlineData(){
+ const reqs=[
+  sb.from('superstars').select('*').order('created_at'),
+  sb.from('championships').select('*').order('created_at'),
+  sb.from('champions').select('*').order('created_at'),
+  sb.from('champion_history').select('*').order('created_at'),
+  sb.from('shows').select('*').order('created_at')
+ ];
+ const [s,t,c,hist,sh]=await Promise.all(reqs);
+ db.superstars=mapRows(s.data);
+ db.championships=mapRows(t.data);
+ db.champions=mapRows(c.data,'champions');
+ db.championHistory=mapRows(hist.data,'history');
+ db.shows=mapRows(sh.data,'shows');
+ if(current && isOwner()){
+  const [p,tr,g]=await Promise.all([sb.from('profiles').select('*'),sb.from('transactions').select('*').order('created_at'),sb.from('gimmick_submissions').select('*').order('created_at')]);
+  db.users=mapRows(p.data,'profiles'); db.transactions=mapRows(tr.data,'transactions'); db.gimmickSubmissions=mapRows(g.data,'gimmicks');
+ } else { db.users=[]; db.transactions=[]; db.gimmickSubmissions=[]; }
+}
+async function save(){
+ if(!canEdit())return;
+ const ops=[];
+ if(db.superstars.length)ops.push(sb.from('superstars').upsert(db.superstars.map(x=>({id:x.id,name:x.name,nickname:x.nickname||null,brand:x.brand||null,status:x.status||null,finisher:x.finisher||null,signature:x.signature||null,theme:x.theme||null,debut:x.debut||null,height:x.height||null,weight:x.weight||null,wins:Number(x.wins||0),losses:Number(x.losses||0),image:x.image||null}))));
+ if(db.championships.length)ops.push(sb.from('championships').upsert(db.championships.map(x=>({id:x.id,name:x.name,brand:x.brand||null,status:x.status||null,image:x.image||null}))));
+ if(db.champions.length)ops.push(sb.from('champions').upsert(db.champions.map(x=>({id:x.id,superstar_id:x.superstarId,title_id:x.titleId,date_won:x.dateWon,image:x.image||null,notes:x.notes||null}))));
+ if(db.championHistory.length)ops.push(sb.from('champion_history').upsert(db.championHistory.map(x=>({id:x.id,superstar_id:x.superstarId||null,superstar_name:x.superstarName||null,title_id:x.titleId,date_won:x.dateWon,date_lost:x.dateLost||null,image:x.image||null,notes:x.notes||null}))));
+ if(db.shows.length)ops.push(sb.from('shows').upsert(db.shows.map(x=>({id:x.id,name:x.name,show_date:x.date||null,show_time:x.time||null,status:x.status||null,venue:x.venue||null,image:x.image||null}))));
+ if(db.transactions.length)ops.push(sb.from('transactions').upsert(db.transactions.map(x=>({id:x.id,person:x.person,amount:Number(x.amount||0),note:x.note||null,transaction_date:x.date||null}))));
+ const res=await Promise.all(ops); const bad=res.find(r=>r.error); if(bad){console.error(bad.error);toastMsg('Online save failed')} else toastMsg('Saved online');
+}
+function uid(p){return crypto.randomUUID()}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function canEdit(){return current && ['WxRC Owner','WxRC Admin','Administrator'].includes(current.role)}
 function isOwner(){return current && ['WxRC Owner','WxRC Admin','Administrator'].includes(current.role)}
 function isGuest(){return current?.role==='WWE Universe'}
 
 function openSignup(){
- openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">Enter the 6-digit Try-Out code you received from a WxRC Owner.</div><form id="codeForm">${formField('code')}</form><button class="btn primary full" onclick="verifySignupCode()">Continue</button>`);
+ openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">Enter the 6-digit Try-Out code you received from a WxRC Owner.</div><form id="codeForm">${formField('code')}<button class="btn primary full">Continue</button></form>`);
+ codeForm.onsubmit=async e=>{e.preventDefault();let code=codeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {data,error}=await sb.rpc('verify_signup_code',{code_input:code});if(error||!data){alert('Incorrect Try-Out code.');return}signupDetails()};
 }
-function verifySignupCode(){
- let code=document.querySelector('#codeForm [name=code]').value.trim();
- if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}
- if(code!==db.signupCode){alert('Incorrect Try-Out code.');return}
- openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">This account will automatically be WxRC Superstar.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
- signupForm.onsubmit=e=>{e.preventDefault();let f=signupForm,u=f.username.value.trim(),p=f.password.value,n=f.displayName.value.trim();if(!u||!p||!n){alert('Fill in all fields.');return}if(db.users.some(x=>x.username.toLowerCase()===u.toLowerCase())){alert('Username already exists.');return}let a={id:uid('u'),displayName:n,username:u,password:p,role:'WxRC Superstar',superstarId:''};db.users.push(a);save();current=a;closeModal();enter();toastMsg('Account created')};
+function signupDetails(){
+ openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">Your account will automatically have the WxRC Superstar role.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('email','','email')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
+ signupForm.onsubmit=async e=>{e.preventDefault();let f=signupForm;let {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{username:f.username.value.trim(),display_name:f.displayName.value.trim()}}});if(error){alert(error.message);return}if(!data.session){closeModal();alert('Account created. Check your email if email confirmation is enabled, then log in.');return}await finishAuth(data.user);closeModal();enter()};
 }
-
-function login(){let u=db.users.find(x=>x.username===loginUser.value.trim()&&x.password===loginPass.value);if(!u){loginError.textContent='Incorrect username or password.';return}current=u;enter()}
-function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};enter()}
+async function finishAuth(user){
+ let {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).single();
+ if(error||!p){alert('Profile could not be loaded.');return false}
+ current={id:p.id,username:p.username||'',displayName:p.display_name||'User',role:p.role||'WxRC Superstar',superstarId:p.superstar_id||''};
+ await loadOnlineData();return true;
+}
+async function login(){
+ loginError.textContent='Signing in...';
+ let {data,error}=await sb.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});
+ if(error){loginError.textContent=error.message;return}
+ if(await finishAuth(data.user)){loginError.textContent='';enter()}
+}
+async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};await loadOnlineData();enter()}
 function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
-function logout(){current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
+async function logout(){await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
+const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
 const navIcons={'Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
 function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
@@ -191,13 +227,10 @@ function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(
 function settings(){
  if(!isOwner()){go('Home');return}
  let subs=db.gimmickSubmissions||[];
- view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Owner / Admin management.</div></div></div>
- <div class="settingsGroup"><h3>Superstar Sign-Up Code</h3><div class="sub">Shared 6-digit Try-Out code required for public Superstar registration.</div><form id="signupCodeForm"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" value="${esc(db.signupCode)}"></div><button class="btn primary">Save Code</button></form></div>
- <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Account Management</h3><div class="sub">Only Owner / Admin can change accounts and roles.</div></div><button class="btn primary" onclick="editUser()">+ Create Account</button></div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><div class="rowActions"><button class="btn small blue" onclick="editUser('${u.id}')">Edit</button>${u.id!=='u1'?`<button class="btn small danger" onclick="del('users','${u.id}')">Delete</button>`:''}</div></div>`).join('')}</div></div>
- <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Submitted Superstar information.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} - Submitted by ${esc(g.submittedBy||'Unknown')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
- signupCodeForm.onsubmit=e=>{e.preventDefault();let code=signupCodeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('Code must contain exactly 6 numbers.');return}db.signupCode=code;save();toastMsg('Sign-up code updated')};
-}
-function viewGimmick(id){
+ view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Online Owner / Admin management.</div></div></div>
+ <div class="settingsGroup"><h3>Account Management</h3><div class="sub">New users create their account through Sign Up. Owner/Admin can change their role and linked Superstar here.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
+}function viewGimmick(id){
  let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
  openModal(g.name||'Gimmick Submission',`<div class="kv">${[['Nickname',g.nickname],['Brand',g.brand],['Status',g.status],['Finisher',g.finisher],['Signature',g.signature],['Theme Song',g.theme],['Debut',g.debut],['Height',g.height],['Weight',g.weight]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${g.notes?`<div class="field"><label>NOTES</label><div>${esc(g.notes)}</div></div>`:''}`);
 }
@@ -208,7 +241,7 @@ function useGimmick(id){
  ['name','nickname','brand','status','finisher','signature','theme','debut','height','weight'].forEach(k=>s[k]=g[k]||'');
  save();toastMsg('Superstar profile updated');go('Superstars');
 }
-function deleteGimmick(id){if(!confirm('Delete this gimmick submission?'))return;db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);save();render()}
+async function deleteGimmick(id){if(!canEdit()||!confirm('Delete this gimmick submission?'))return;let {error}=await sb.from('gimmick_submissions').delete().eq('id',id);if(error){alert(error.message);return}db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);render()}
 function normalizeRole(r){return ({'Administrator':'WxRC Owner','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
 function generic(title,desc,key,fields){view.innerHTML=`<div class="sectionHead"><div><h2>${title}</h2><div class="sub">${desc}</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("${key}",${JSON.stringify(fields)})'>+ Add</button>`:''}</div><div class="list">${db[key].map(o=>`<div class="row"><div class="rowMain">${o.image?`<img class="thumb" src="${esc(o.image)}">`:''}<div><b>${esc(o.name||o.person||'Item')}</b><div class="sub">${fields.filter(f=>f!=='name'&&f!=='image').map(f=>esc(o[f]||'')).filter(Boolean).join(' · ')}</div></div></div>${canEdit()?`<div class="rowActions"><button class="btn small blue" onclick='editGeneric("${key}",${JSON.stringify(fields)},"${o.id}")'>Edit</button><button class="btn small danger" onclick="del('${key}','${o.id}')">Delete</button></div>`:''}</div>`).join('')||empty()}</div>`}
 function empty(){return `<div class="empty">Nothing here yet.</div>`}
@@ -293,12 +326,15 @@ function editChampion(id=''){
  };
 }
 function editUser(id=''){
- let o=db.users.find(x=>x.id===id)||{};
- openModal(id?'Edit Account':'Create Account',`<form id="uform">${formField('displayName',o.displayName||'')}${formField('username',o.username||'')}${formField('password',o.password||'','password')}<div class="field"><label>ROLE</label><select name="role">${['WxRC Owner','WxRC Admin','WxRC Staff','WxRC Superstar'].map(r=>`<option ${normalizeRole(o.role)===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId"><option value="">None</option>${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><button class="btn primary full">Save Account</button></form>`);
- uform.onsubmit=e=>{e.preventDefault();let x=id?o:{id:uid('u')};['displayName','username','password','role','superstarId'].forEach(f=>x[f]=uform.elements[f].value.trim());if(db.users.some(y=>y.username===x.username&&y.id!==x.id)){alert('Username already exists.');return}if(!id)db.users.push(x);save();closeModal();renderNav();render();toastMsg('Account saved')};
+ let o=db.users.find(x=>x.id===id);if(!o)return;
+ openModal('Edit Account',`<form id="uform">${formField('displayName',o.displayName||'')}${formField('username',o.username||'')}<div class="field"><label>ROLE</label><select name="role">${['WxRC Owner','WxRC Admin','WxRC Staff','WxRC Superstar'].map(r=>`<option ${o.role===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId"><option value="">None</option>${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><button class="btn primary full">Save Account</button></form>`);
+ uform.onsubmit=async e=>{e.preventDefault();let patch={display_name:uform.displayName.value.trim(),username:uform.username.value.trim(),role:uform.role.value,superstar_id:uform.superstarId.value||null};let {error}=await sb.from('profiles').update(patch).eq('id',id);if(error){alert(error.message);return}Object.assign(o,{displayName:patch.display_name,username:patch.username,role:patch.role,superstarId:patch.superstar_id||''});closeModal();renderNav();render();toastMsg('Account updated online')};
 }
 function editTransaction(){openModal('WWE Coins Transaction',`<form id="tform">${formField('person')}${formField('amount','0','number')}${formField('note')}${formField('date',new Date().toISOString().slice(0,10))}<button class="btn primary full">Save Transaction</button></form>`);tform.onsubmit=e=>{e.preventDefault();db.transactions.push({id:uid('tr'),person:tform.person.value.trim(),amount:Number(tform.amount.value),note:tform.note.value.trim(),date:tform.date.value});save();closeModal();render();toastMsg('Transaction saved')}}
-function del(key,id){if(!confirm('Delete this item?'))return;db[key]=db[key].filter(x=>x.id!==id);save();render()}
+async function del(key,id){if(!canEdit()||!confirm('Delete this item?'))return;let table=tableMap[key];if(table){let {error}=await sb.from(table).delete().eq('id',id);if(error){alert(error.message);return}}db[key]=db[key].filter(x=>x.id!==id);render();toastMsg('Deleted online')}
+
+(async()=>{const {data:{session}}=await sb.auth.getSession();if(session?.user){if(await finishAuth(session.user))enter()}})();
+
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body>
