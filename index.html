@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.1</title>
+<title>WWE x Roblox Community Online v4.1.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -170,6 +170,7 @@ function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=
 function go(n){page=n;renderNav();render()}
 function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'News':news,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
+function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 function news(){
  const items=(db.news||[]).slice().sort((a,b)=>new Date(b.publishedAt||0)-new Date(a.publishedAt||0));
  view.innerHTML=`<div class="sectionHead"><div><h2>WxRC News</h2><div class="sub">Official WWE x Roblox Community updates and announcements.</div></div>${canEdit()?`<button class="btn primary" onclick="editNews()">+ Add News</button>`:''}</div>
@@ -178,8 +179,8 @@ function news(){
 function editNews(id=''){
  if(!canEdit())return;
  const o=(db.news||[]).find(x=>x.id===id)||{};
- openModal(id?'Edit News':'Add News',`<form id="newsForm">${formField('title',o.title||'')}<div class="field"><label>NEWS</label><textarea name="content" rows="7" required>${esc(o.content||'')}</textarea></div>${formField('image',o.image||'')}<button class="btn primary full">${id?'Save Changes':'Publish News'}</button></form>`);
- newsForm.onsubmit=async e=>{e.preventDefault();let row={title:newsForm.title.value.trim(),content:newsForm.content.value.trim(),image:newsForm.image.value.trim()||null,author:current.displayName||current.username||'WxRC Management'};let res=id?await sb.from('news').update(row).eq('id',id).select().single():await sb.from('news').insert(row).select().single();if(res.error){alert(res.error.message);return}let n=res.data;if(id){let i=db.news.findIndex(x=>x.id===id);if(i>=0)db.news[i]={id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at}}else db.news.unshift({id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at});closeModal();news();toastMsg(id?'News updated':'News published')};
+ openModal(id?'Edit News':'Add News',`<form id="newsForm">${formField('title',o.title||'')}<div class="field"><label>NEWS</label><textarea name="content" rows="7" required>${esc(o.content||'')}</textarea></div><div class="field"><label>IMAGE</label><input name="imageFile" type="file" accept="image/*"><div class="sub" style="margin-top:6px">Choose a photo from your device (max 1.5 MB).</div></div>${o.image?`<div class="field"><label>CURRENT IMAGE</label><img src="${o.image}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px"><label style="display:flex;gap:8px;margin-top:8px"><input type="checkbox" name="removeImage"> Remove image</label></div>`:''}<button class="btn primary full">${id?'Save Changes':'Publish News'}</button></form>`);
+ newsForm.onsubmit=async e=>{e.preventDefault();let image=o.image||null;if(newsForm.removeImage?.checked)image=null;let file=newsForm.imageFile.files[0];if(file){if(file.size>1500000){alert('Please choose an image smaller than 1.5 MB.');return}image=await fileToDataUrl(file)}let row={title:newsForm.title.value.trim(),content:newsForm.content.value.trim(),image,author:current.displayName||current.username||'WxRC Management'};let res=id?await sb.from('news').update(row).eq('id',id).select().single():await sb.from('news').insert(row).select().single();if(res.error){alert(res.error.message);return}let n=res.data;if(id){let i=db.news.findIndex(x=>x.id===id);if(i>=0)db.news[i]={id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at}}else db.news.unshift({id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at});closeModal();news();toastMsg(id?'News updated':'News published')};
 }
 async function deleteNews(id){
  if(!canEdit()||!confirm('Delete this news post?'))return;
@@ -244,13 +245,18 @@ function rivalries(){generic('Rivalries','Manage active and completed rivalries.
 function storylines(){generic('Storylines','Keep creative plans and storyline notes.','storylines',['name','members','status','notes'])}
 function contracts(){generic('Contracts','Manage Superstar and Staff contracts.','contracts',['name','person','value','startDate','endDate','status'])}
 function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(balances[t.person]||0)+Number(t.amount||0));view.innerHTML=`<div class="sectionHead"><div><h2>WWE Coins</h2><div class="sub">Community economy and transaction history.</div></div>${canEdit()?`<button class="btn primary" onclick="editTransaction()">+ Transaction</button>`:''}</div><div class="grid">${Object.entries(balances).map(([p,b])=>`<div class="card stat"><span class="muted">${esc(p)}</span><strong>${b}</strong><span class="badge gold">WWE COINS</span></div>`).join('')||empty()}</div><div class="sectionHead"><h3>Transactions</h3></div><div class="list">${db.transactions.slice().reverse().map(t=>`<div class="row"><div><b>${esc(t.person)}</b><div class="sub">${esc(t.note||'Transaction')} · ${esc(t.date||'')}</div></div><b>${Number(t.amount)>0?'+':''}${Number(t.amount)}</b></div>`).join('')||empty()}</div>`}
-function settings(){
+async function settings(){
  if(!isOwner()){go('News');return}
  let subs=db.gimmickSubmissions||[];
+ let {data:cfg}=await sb.from('app_settings').select('signup_code').eq('id',1).maybeSingle();
+ let signupCode=cfg?.signup_code||'';
  view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Online Owner / Admin management.</div></div></div>
- <div class="settingsGroup"><h3>Account Management</h3><div class="sub">New users create their account through Sign Up. Owner/Admin can change their role and linked Superstar here.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Try-Out Sign Up Code</h3><div class="sub">Change the 6-digit code required when a new Superstar creates an account.</div><form id="signupCodeForm" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" value="${esc(signupCode)}" required></div><button class="btn primary">Change Code</button></form></div>
+ <div class="settingsGroup"><h3>Account Management</h3><div class="sub">Owner/Admin can change account roles and linked Superstars.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
  <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
-}function viewGimmick(id){
+ signupCodeForm.onsubmit=async e=>{e.preventDefault();let code=signupCodeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {error}=await sb.from('app_settings').update({signup_code:code}).eq('id',1);if(error){alert(error.message);return}toastMsg('Try-Out code changed')};
+}
+function viewGimmick(id){
  let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
  openModal(g.name||'Gimmick Submission',`<div class="kv">${[['Nickname',g.nickname],['Brand',g.brand],['Status',g.status],['Finisher',g.finisher],['Signature',g.signature],['Theme Song',g.theme],['Debut',g.debut],['Height',g.height],['Weight',g.weight]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${g.notes?`<div class="field"><label>NOTES</label><div>${esc(g.notes)}</div></div>`:''}`);
 }
