@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community v3.6</title>
+<title>WWE x Roblox Community v3.7</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -111,11 +111,11 @@ function login(){let u=db.users.find(x=>x.username===loginUser.value.trim()&&x.p
 function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};enter()}
 function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
 function logout(){current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
-const navIcons={'Home':'⌂','Superstars':'★','Roster':'♟':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
+const navIcons={'Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
 function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){page=n;renderNav();render()}
-function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Home':home,'Superstars':superstars,'Roster':roster:submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};(map[page]||home)()}
+function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Home':home,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};(map[page]||home)()}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length,matches:db.matches.length}}
 function home(){let s=stats();view.innerHTML=`<div class="hero"><span class="badge red">WWE x ROBLOX COMMUNITY</span><h1>Community Control Center</h1><div class="muted">Manage the roster, champions, shows, matches and community operations from one place.</div></div><div class="grid">${[['Superstars',s.superstars],['Current Champions',s.champions],['Shows',s.shows],['Matches',s.matches]].map(x=>`<div class="card stat"><span class="muted">${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</div><div class="sectionHead"><h2>Current Champions</h2></div>${champList(false)}`}
 function img(src,name){return src?`<img class="thumb" src="${esc(src)}">`:`<div class="thumb avatar">${esc(name?.[0]||'?')}</div>`}
