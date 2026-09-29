@@ -1,8 +1,9 @@
 {
   "name": "WWE x Roblox Community",
-  "short_name": "WWE x Roblox",
+  "short_name": "WxRC",
   "start_url": "./index.html",
   "display": "standalone",
+  "background_color": "#07080b",
   "theme_color": "#090a0d",
-  "background_color": "#07080b"
+  "description": "WWE x Roblox Community management app"
 }
