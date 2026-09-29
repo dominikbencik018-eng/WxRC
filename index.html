@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.1.1</title>
+<title>WWE x Roblox Community Online v4.2</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -75,7 +75,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
  <div id="sideNav" class="nav"></div>
 </aside>
 <main class="content">
- <div class="top"><div><h2 id="pageTitle">Home</h2><div class="sub">WWE x Roblox Community</div></div><div class="userchip"><div id="userAvatar" class="avatar">G</div><div><b id="userName">Guest</b><div id="userRole" class="sub">WWE Universe</div></div><button class="btn small ghost" onclick="logout()">Log out</button></div></div>
+ <div class="top"><div><h2 id="pageTitle">Home</h2><div class="sub">WWE x Roblox Community</div></div><div class="userchip"><div id="userAvatar" class="avatar">G</div><div><b id="userName">Guest</b><div id="userRole" class="sub">WWE Universe</div></div><button class="btn small ghost" onclick="refreshApp()">↻ Refresh</button><button class="btn small ghost" onclick="logout()">Log out</button></div></div>
  <div id="view"></div>
 </main>
 </div>
@@ -164,13 +164,67 @@ function enter(){page='News';document.getElementById('login').classList.add('hid
 async function logout(){await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
 const nav=['News','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
-const navIcons={'Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
+const navIcons={'News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
 function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){page=n;renderNav();render()}
 function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'News':news,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+
+async function refreshApp(){
+ toastMsg('Refreshing...');
+ await loadOnlineData();
+ renderNav();render();
+ toastMsg('Updated');
+}
+function cropImageFile(file,aspect=1){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onerror=reject;
+  reader.onload=()=>{
+   const img=new Image();
+   img.onload=()=>{
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';
+    overlay.innerHTML=`<div style="width:min(94vw,520px);background:#11151d;border:1px solid #2a303b;border-radius:18px;padding:16px"><h2 style="margin:0 0 12px">Crop Photo</h2><div style="overflow:hidden;border-radius:14px;background:#000;aspect-ratio:${aspect};position:relative"><img id="cropImg" src="${reader.result}" style="width:100%;height:100%;object-fit:cover"></div><div class="field"><label>ZOOM</label><input id="cropZoom" type="range" min="100" max="300" value="100"></div><div class="field"><label>LEFT / RIGHT</label><input id="cropX" type="range" min="-100" max="100" value="0"></div><div class="field"><label>UP / DOWN</label><input id="cropY" type="range" min="-100" max="100" value="0"></div><div style="display:flex;gap:8px"><button id="cropCancel" class="btn ghost" style="flex:1">Cancel</button><button id="cropDone" class="btn primary" style="flex:1">Use Photo</button></div></div>`;
+    document.body.appendChild(overlay);
+    const ci=overlay.querySelector('#cropImg'), zoom=overlay.querySelector('#cropZoom'), xs=overlay.querySelector('#cropX'), ys=overlay.querySelector('#cropY');
+    const preview=()=>{ci.style.transform=`scale(${Number(zoom.value)/100}) translate(${Number(xs.value)/4}px,${Number(ys.value)/4}px)`};
+    zoom.oninput=xs.oninput=ys.oninput=preview;
+    overlay.querySelector('#cropCancel').onclick=()=>{overlay.remove();resolve(null)};
+    overlay.querySelector('#cropDone').onclick=()=>{
+     const nw=img.naturalWidth,nh=img.naturalHeight,a=Number(aspect)||1,z=Number(zoom.value)/100;
+     let bw,bh;if(nw/nh>a){bh=nh;bw=nh*a}else{bw=nw;bh=nw/a}
+     let cw=bw/z,ch=bh/z;
+     let maxX=(nw-cw)/2,maxY=(nh-ch)/2;
+     let cx=nw/2+(Number(xs.value)/100)*maxX,cy=nh/2+(Number(ys.value)/100)*maxY;
+     let sx=Math.max(0,Math.min(nw-cw,cx-cw/2)),sy=Math.max(0,Math.min(nh-ch,cy-ch/2));
+     const canvas=document.createElement('canvas');
+     const max=1200;
+     if(a>=1){canvas.width=Math.min(max,Math.round(cw));canvas.height=Math.round(canvas.width/a)}
+     else{canvas.height=Math.min(max,Math.round(ch));canvas.width=Math.round(canvas.height*a)}
+     canvas.getContext('2d').drawImage(img,sx,sy,cw,ch,0,0,canvas.width,canvas.height);
+     const data=canvas.toDataURL('image/jpeg',.88);overlay.remove();resolve(data);
+    };
+   };
+   img.onerror=reject;img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+ });
+}
+async function prepareCropInput(input,aspect=1,previewId=''){
+ const file=input?.files?.[0];if(!file)return null;
+ const data=await cropImageFile(file,aspect);
+ if(!data){input.value='';delete input.dataset.cropped;return null}
+ input.dataset.cropped=data;
+ if(previewId){
+  const old=document.getElementById(previewId);
+  if(old){const im=document.createElement('img');im.id=previewId;im.className='thumb';im.style.cssText='width:84px;height:84px;object-fit:cover';im.src=data;old.replaceWith(im)}
+ }
+ return data;
+}
+
 function news(){
  const items=(db.news||[]).slice().sort((a,b)=>new Date(b.publishedAt||0)-new Date(a.publishedAt||0));
  view.innerHTML=`<div class="sectionHead"><div><h2>WxRC News</h2><div class="sub">Official WWE x Roblox Community updates and announcements.</div></div>${canEdit()?`<button class="btn primary" onclick="editNews()">+ Add News</button>`:''}</div>
@@ -179,8 +233,8 @@ function news(){
 function editNews(id=''){
  if(!canEdit())return;
  const o=(db.news||[]).find(x=>x.id===id)||{};
- openModal(id?'Edit News':'Add News',`<form id="newsForm">${formField('title',o.title||'')}<div class="field"><label>NEWS</label><textarea name="content" rows="7" required>${esc(o.content||'')}</textarea></div><div class="field"><label>IMAGE</label><input name="imageFile" type="file" accept="image/*"><div class="sub" style="margin-top:6px">Choose a photo from your device (max 1.5 MB).</div></div>${o.image?`<div class="field"><label>CURRENT IMAGE</label><img src="${o.image}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px"><label style="display:flex;gap:8px;margin-top:8px"><input type="checkbox" name="removeImage"> Remove image</label></div>`:''}<button class="btn primary full">${id?'Save Changes':'Publish News'}</button></form>`);
- newsForm.onsubmit=async e=>{e.preventDefault();let image=o.image||null;if(newsForm.removeImage?.checked)image=null;let file=newsForm.imageFile.files[0];if(file){if(file.size>1500000){alert('Please choose an image smaller than 1.5 MB.');return}image=await fileToDataUrl(file)}let row={title:newsForm.title.value.trim(),content:newsForm.content.value.trim(),image,author:current.displayName||current.username||'WxRC Management'};let res=id?await sb.from('news').update(row).eq('id',id).select().single():await sb.from('news').insert(row).select().single();if(res.error){alert(res.error.message);return}let n=res.data;if(id){let i=db.news.findIndex(x=>x.id===id);if(i>=0)db.news[i]={id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at}}else db.news.unshift({id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at});closeModal();news();toastMsg(id?'News updated':'News published')};
+ openModal(id?'Edit News':'Add News',`<form id="newsForm">${formField('title',o.title||'')}<div class="field"><label>NEWS</label><textarea name="content" rows="7" required>${esc(o.content||'')}</textarea></div><div class="field"><label>IMAGE</label><input name="imageFile" type="file" accept="image/*" onchange="prepareCropInput(this,16/9)"><div class="sub" style="margin-top:6px">Choose a photo from your device (max 1.5 MB).</div></div>${o.image?`<div class="field"><label>CURRENT IMAGE</label><img src="${o.image}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px"><label style="display:flex;gap:8px;margin-top:8px"><input type="checkbox" name="removeImage"> Remove image</label></div>`:''}<button class="btn primary full">${id?'Save Changes':'Publish News'}</button></form>`);
+ newsForm.onsubmit=async e=>{e.preventDefault();let image=o.image||null;if(newsForm.removeImage?.checked)image=null;let file=newsForm.imageFile.files[0];if(file){image=newsForm.imageFile.dataset.cropped||await prepareCropInput(newsForm.imageFile,16/9);if(!image)return}let row={title:newsForm.title.value.trim(),content:newsForm.content.value.trim(),image,author:current.displayName||current.username||'WxRC Management'};let res=id?await sb.from('news').update(row).eq('id',id).select().single():await sb.from('news').insert(row).select().single();if(res.error){alert(res.error.message);return}let n=res.data;if(id){let i=db.news.findIndex(x=>x.id===id);if(i>=0)db.news[i]={id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at}}else db.news.unshift({id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at});closeModal();news();toastMsg(id?'News updated':'News published')};
 }
 async function deleteNews(id){
  if(!canEdit()||!confirm('Delete this news post?'))return;
@@ -195,11 +249,12 @@ function daysSince(d){if(!d)return 0;let a=new Date(d+'T00:00:00'),b=new Date();
 function mdy(d){if(!d)return '—';let p=d.split('-');if(p.length!==3)return d;return `${Number(p[1])}/${Number(p[2])}/${p[0]}`}
 
 function submitGimmick(){
- view.innerHTML=`<div class="hero"><span class="badge red">WxRC SUPERSTAR</span><h1>Submit a Gimmick</h1><div class="muted">Fill in your Superstar information for WxRC Staff.</div></div><div class="card" style="margin-top:16px"><form id="gimmickForm">${formField('name')}${formField('nickname')}<div class="field"><label>BRAND</label><select name="brand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>STATUS</label><select name="status"><option>Active</option><option>Inactive</option></select></div>${formField('finisher')}${formField('signature')}${formField('theme')}${formField('debut')}${formField('height')}${formField('weight')}${formField('notes')}<button class="btn primary full">Submit Gimmick</button></form></div>`;
+ view.innerHTML=`<div class="hero"><span class="badge red">WxRC SUPERSTAR</span><h1>Submit a Gimmick</h1><div class="muted">Fill in your Superstar information for WxRC Staff.</div></div><div class="card" style="margin-top:16px"><form id="gimmickForm">${formField('name')}${formField('nickname')}<div class="field"><label>BRAND</label><select name="brand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>STATUS</label><select name="status"><option>Active</option><option>Inactive</option></select></div>${formField('finisher')}${formField('signature')}${formField('theme')}${formField('debut')}${formField('height')}${formField('weight')}${formField('notes')}<div class="field"><label>SUPERSTAR PHOTO</label><input name="imageFile" type="file" accept="image/*" onchange="prepareCropInput(this,1)"><div class="sub" style="margin-top:6px">Choose a photo from your device (max 1.5 MB).</div></div><button class="btn primary full">Submit Gimmick</button></form></div>`;
  gimmickForm.onsubmit=async e=>{
   e.preventDefault();let f=gimmickForm;
   if(isGuest()){alert('Please create an account or log in to submit a gimmick.');return}
-  let {error}=await sb.from('gimmick_submissions').insert({user_id:current.id,name:f.name.value.trim(),nickname:f.nickname.value.trim()||null,brand:f.brand.value||null,status:f.status.value||null,finisher:f.finisher.value.trim()||null,signature:f.signature.value.trim()||null,theme:f.theme.value.trim()||null,debut:f.debut.value||null,height:f.height.value.trim()||null,weight:f.weight.value.trim()||null,notes:f.notes.value.trim()||null});
+  let image=null;let file=f.imageFile.files[0];if(file){image=f.imageFile.dataset.cropped||await prepareCropInput(f.imageFile,1);if(!image)return}
+  let {error}=await sb.from('gimmick_submissions').insert({user_id:current.id,name:f.name.value.trim(),nickname:f.nickname.value.trim()||null,brand:f.brand.value||null,status:f.status.value||null,finisher:f.finisher.value.trim()||null,signature:f.signature.value.trim()||null,theme:f.theme.value.trim()||null,debut:f.debut.value||null,height:f.height.value.trim()||null,weight:f.weight.value.trim()||null,notes:f.notes.value.trim()||null,image});
   if(error){alert(error.message);return}view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('News')">Done</button></div>`;
  };
 }
@@ -291,13 +346,7 @@ function photoField(current='',label='PHOTO'){
 function bindPhotoPreview(){
  const input=document.getElementById('photoFile');
  if(!input)return;
- input.onchange=async()=>{
-  const f=input.files?.[0]; if(!f)return;
-  const data=await fileToDataURL(f);
-  const old=document.getElementById('photoPreview');
-  const im=document.createElement('img'); im.id='photoPreview'; im.className='thumb'; im.style.cssText='width:84px;height:84px'; im.src=data;
-  old.replaceWith(im);
- };
+ input.onchange=async()=>{await prepareCropInput(input,1,'photoPreview')};
 }
 
 function editGeneric(key,fields,id=''){
@@ -307,7 +356,7 @@ function editGeneric(key,fields,id=''){
  gform.onsubmit=async e=>{
   e.preventDefault(); let x=id?o:{id:uid(key[0])};
   for(const f of fields){
-   if(f==='image'){const file=document.getElementById('photoFile')?.files?.[0];x.image=file?await fileToDataURL(file):(o.image||'')}
+   if(f==='image'){const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'')}
    else x[f]=gform.elements[f].value.trim();
   }
   if(!id)db[key].push(x);save();closeModal();render();toastMsg('Saved');
@@ -318,7 +367,7 @@ function editSuperstar(id=''){
  let fields=['name','nickname','brand','status','finisher','signature','theme','debut','height','weight','wins','losses'];
  openModal(id?'Edit Superstar':'Add Superstar',`<form id="sform">${photoField(o.image||'','SUPERSTAR PHOTO')}<div class="two">${fields.map(f=>formField(f,o[f]??'',['wins','losses'].includes(f)?'number':'text')).join('')}</div><button class="btn primary full">Save Superstar</button></form>`);
  bindPhotoPreview();
- sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?await fileToDataURL(file):(o.image||'');if(!id)db.superstars.push(x);save();closeModal();render();toastMsg('Superstar saved')};
+ sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'');if(!id)db.superstars.push(x);save();closeModal();render();toastMsg('Superstar saved')};
 }
 function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div><div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
 function deleteChampion(id){
@@ -338,7 +387,7 @@ function editChampion(id=''){
   const superstarId=cform.superstarId.value,titleId=cform.titleId.value,dateWon=cform.dateWon.value;
   const file=document.getElementById('photoFile')?.files?.[0];
   if(id){
-   o.superstarId=superstarId;o.titleId=titleId;o.dateWon=dateWon;o.notes=cform.notes.value.trim();if(file)o.image=await fileToDataURL(file);
+   o.superstarId=superstarId;o.titleId=titleId;o.dateWon=dateWon;o.notes=cform.notes.value.trim();if(file)o.image=document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1);
   }else{
    const previous=db.champions.find(x=>x.titleId===titleId);
    if(previous){
@@ -346,7 +395,7 @@ function editChampion(id=''){
     db.championHistory.push({id:uid('h'),titleId,superstarId:previous.superstarId,superstarName:ps?.name||'',dateWon:previous.dateWon,dateLost:dateWon,image:previous.image||ps?.image||'',notes:previous.notes||''});
     db.champions=db.champions.filter(x=>x.id!==previous.id);
    }
-   db.champions.push({id:uid('c'),superstarId,titleId,dateWon,notes:cform.notes.value.trim(),image:file?await fileToDataURL(file):''});
+   db.champions.push({id:uid('c'),superstarId,titleId,dateWon,notes:cform.notes.value.trim(),image:file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):''});
   }
   save();closeModal();render();toastMsg('Champion saved');
  };
