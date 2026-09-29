@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community v3.1</title>
+<title>WWE x Roblox Community v3.3</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -124,15 +124,20 @@ function daysSince(d){if(!d)return 0;let a=new Date(d+'T00:00:00'),b=new Date();
 function mdy(d){if(!d)return '—';let p=d.split('-');if(p.length!==3)return d;return `${Number(p[1])}/${Number(p[2])}/${p[0]}`}
 function activeChampionFor(titleId){return db.champions.find(c=>c.titleId===titleId)}
 function reignDays(start,end=''){if(!start)return 0;let a=new Date(start+'T00:00:00'),b=end?new Date(end+'T00:00:00'):new Date();a.setHours(0,0,0,0);b.setHours(0,0,0,0);return Math.max(0,Math.floor((b-a)/86400000)+1)}
-function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CHAMPION</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT · ${reignDays(c.dateWon)} days</div>${actions&&canEdit()?`<div style="margin-top:10px"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">Edit</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
+function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CHAMPION</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignDays(c.dateWon)} ${reignDays(c.dateWon)===1?'day':'days'}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
 function champions(){view.innerHTML=`<div class="sectionHead"><div><h2>Champions</h2><div class="sub">Current title holders. Tap a champion to see the full title history.</div></div>${canEdit()?`<button class="btn primary" onclick="editChampion()">+ Set New Champion</button>`:''}</div>${champList()}`}
 function championshipHistory(titleId){
  const t=db.championships.find(x=>x.id===titleId); const c=activeChampionFor(titleId); const s=c?db.superstars.find(x=>x.id===c.superstarId):null;
  let hist=(db.championHistory||[]).filter(h=>h.titleId===titleId).sort((a,b)=>(b.dateWon||'').localeCompare(a.dateWon||''));
  let rows=[];
- if(c)rows.push({name:s?.name||'Unknown Superstar',dateWon:c.dateWon,dateLost:'',current:true});
- hist.forEach(h=>rows.push({name:h.superstarName||db.superstars.find(x=>x.id===h.superstarId)?.name||'Unknown Superstar',dateWon:h.dateWon,dateLost:h.dateLost,current:false}));
- view.innerHTML=`<div class="sectionHead"><div><button class="btn ghost small" onclick="go('Champions')">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT · ${reignDays(c.dateWon)} days</div></div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignDays(r.dateWon,r.dateLost)} ${reignDays(r.dateWon,r.dateLost)===1?'day':'days'}</div></div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+ if(c)rows.push({id:c.id,name:s?.name||'Unknown Superstar',dateWon:c.dateWon,dateLost:'',current:true,notes:c.notes||''});
+ hist.forEach(h=>rows.push({id:h.id,name:h.superstarName||db.superstars.find(x=>x.id===h.superstarId)?.name||'Unknown Superstar',dateWon:h.dateWon,dateLost:h.dateLost,current:false,notes:h.notes||''}));
+ view.innerHTML=`<div class="sectionHead"><div><button class="btn ghost small" onclick="go('Champions')">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignDays(c.dateWon)} ${reignDays(c.dateWon)===1?'day':'days'}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignDays(r.dateWon,r.dateLost)} ${reignDays(r.dateWon,r.dateLost)===1?'day':'days'}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<button class="btn small blue" style="margin-top:13px" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+}
+function editHistory(id,titleId){
+ const h=(db.championHistory||[]).find(x=>x.id===id); if(!h)return;
+ openModal('Edit Championship History',`<form id="hform">${formField('dateWon',h.dateWon||'')}${formField('dateLost',h.dateLost||'')}${formField('notes',h.notes||'')}<div class="sub" style="margin:-5px 0 14px">Add opponent, PPV/event, location or any other reign information.</div><button class="btn primary full">Save History</button></form>`);
+ hform.onsubmit=e=>{e.preventDefault();h.dateWon=hform.dateWon.value;h.dateLost=hform.dateLost.value;h.notes=hform.notes.value.trim();save();closeModal();championshipHistory(titleId);toastMsg('History updated')};
 }
 function prettyDate(d){if(!d)return '—';let x=new Date(d+'T00:00:00');return x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}
 function championships(){generic('Championships','Create and manage championships.','championships',['name','brand','status','image'])}
@@ -199,24 +204,32 @@ function editSuperstar(id=''){
  sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?await fileToDataURL(file):(o.image||'');if(!id)db.superstars.push(x);save();closeModal();render();toastMsg('Superstar saved')};
 }
 function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div><div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
+function deleteChampion(id){
+ const c=db.champions.find(x=>x.id===id);
+ if(!c)return;
+ const s=db.superstars.find(x=>x.id===c.superstarId);
+ if(!confirm(`Delete ${s?.name||'this champion'} as current champion? This will not add this reign to championship history.`))return;
+ db.champions=db.champions.filter(x=>x.id!==id);
+ save();render();toastMsg('Champion deleted');
+}
 function editChampion(id=''){
  let o=db.champions.find(x=>x.id===id)||{};
- openModal(id?'Edit Champion':'Set New Champion',`<form id="cform">${photoField(o.image||'','CHAMPION PHOTO')}<div class="field"><label>SUPERSTAR</label><select name="superstarId">${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><div class="field"><label>CHAMPIONSHIP</label><select name="titleId">${db.championships.map(t=>`<option value="${t.id}" ${o.titleId===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>${formField('dateWon',o.dateWon||new Date().toISOString().slice(0,10))}<button class="btn primary full">Save Champion</button></form>`);
+ openModal(id?'Edit Champion':'Set New Champion',`<form id="cform">${photoField(o.image||'','CHAMPION PHOTO')}<div class="field"><label>SUPERSTAR</label><select name="superstarId">${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><div class="field"><label>CHAMPIONSHIP</label><select name="titleId">${db.championships.map(t=>`<option value="${t.id}" ${o.titleId===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>${formField('dateWon',o.dateWon||new Date().toISOString().slice(0,10))}${formField('notes',o.notes||'')}<div class="sub" style="margin:-5px 0 14px">Optional: write who they defeated, PPV/event, location, match details, etc.</div><button class="btn primary full">Save Champion</button></form>`);
  bindPhotoPreview();
  cform.onsubmit=async e=>{
   e.preventDefault();
   const superstarId=cform.superstarId.value,titleId=cform.titleId.value,dateWon=cform.dateWon.value;
   const file=document.getElementById('photoFile')?.files?.[0];
   if(id){
-   o.superstarId=superstarId;o.titleId=titleId;o.dateWon=dateWon;if(file)o.image=await fileToDataURL(file);
+   o.superstarId=superstarId;o.titleId=titleId;o.dateWon=dateWon;o.notes=cform.notes.value.trim();if(file)o.image=await fileToDataURL(file);
   }else{
    const previous=db.champions.find(x=>x.titleId===titleId);
    if(previous){
     const ps=db.superstars.find(x=>x.id===previous.superstarId);
-    db.championHistory.push({id:uid('h'),titleId,superstarId:previous.superstarId,superstarName:ps?.name||'',dateWon:previous.dateWon,dateLost:dateWon,image:previous.image||ps?.image||''});
+    db.championHistory.push({id:uid('h'),titleId,superstarId:previous.superstarId,superstarName:ps?.name||'',dateWon:previous.dateWon,dateLost:dateWon,image:previous.image||ps?.image||'',notes:previous.notes||''});
     db.champions=db.champions.filter(x=>x.id!==previous.id);
    }
-   db.champions.push({id:uid('c'),superstarId,titleId,dateWon,image:file?await fileToDataURL(file):''});
+   db.champions.push({id:uid('c'),superstarId,titleId,dateWon,notes:cform.notes.value.trim(),image:file?await fileToDataURL(file):''});
   }
   save();closeModal();render();toastMsg('Champion saved');
  };
