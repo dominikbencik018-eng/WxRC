@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community v3.7</title>
+<title>WWE x Roblox Community v3.8</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -60,6 +60,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
     <div class="field"><label>USERNAME</label><input id="loginUser" autocomplete="username"></div>
     <div class="field"><label>PASSWORD</label><input id="loginPass" type="password" autocomplete="current-password"></div>
     <button class="btn primary full" onclick="login()">Log In</button>
+<button class="btn ghost full" style="margin-top:9px" onclick="openSignup()">Sign Up / Create an Account</button>
     <div class="divider">WWE UNIVERSE</div>
     <button class="btn ghost full" onclick="guestLogin()">Continue as Guest</button>
     <p id="loginError" class="sub" style="color:#ff7e89"></p>
@@ -93,20 +94,33 @@ const seed={
  championships:[{id:'t1',name:"Women's World Championship",brand:'RAW',status:'Active',image:''},{id:'t2',name:"Women's Tag Team Championship",brand:'Cross-brand',status:'Active',image:''}],
  champions:[],
  shows:[{id:'sh1',name:'RAW',date:'',time:'',status:'Upcoming',venue:''},{id:'sh2',name:'SmackDown',date:'',time:'',status:'Upcoming',venue:''}],
- matches:[],rivalries:[],storylines:[],contracts:[],transactions:[]
+ matches:[],rivalries:[],storylines:[],contracts:[],transactions:[],signupCode:'246810'
 };
 let db=load(), current=null, page='Home';
 if(!db.championHistory)db.championHistory=[];
 if(!db.champions)db.champions=[];
 if(!db.gimmickSubmissions)db.gimmickSubmissions=[];
+if(!/^\d{6}$/.test(db.signupCode||''))db.signupCode='246810';
 const nav=['Home','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
 function load(){try{return {...structuredClone(seed),...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){return structuredClone(seed)}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function canEdit(){return current && ['WxRC Owner','WxRC Staff','Administrator','WWE Staff'].includes(current.role)}
-function isOwner(){return current && ['WxRC Owner','Administrator'].includes(current.role)}
+function canEdit(){return current && ['WxRC Owner','WxRC Admin','Administrator'].includes(current.role)}
+function isOwner(){return current && ['WxRC Owner','WxRC Admin','Administrator'].includes(current.role)}
 function isGuest(){return current?.role==='WWE Universe'}
+
+function openSignup(){
+ openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">Enter the 6-digit Try-Out code you received from a WxRC Owner.</div><form id="codeForm">${formField('code')}</form><button class="btn primary full" onclick="verifySignupCode()">Continue</button>`);
+}
+function verifySignupCode(){
+ let code=document.querySelector('#codeForm [name=code]').value.trim();
+ if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}
+ if(code!==db.signupCode){alert('Incorrect Try-Out code.');return}
+ openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">This account will automatically be WxRC Superstar.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
+ signupForm.onsubmit=e=>{e.preventDefault();let f=signupForm,u=f.username.value.trim(),p=f.password.value,n=f.displayName.value.trim();if(!u||!p||!n){alert('Fill in all fields.');return}if(db.users.some(x=>x.username.toLowerCase()===u.toLowerCase())){alert('Username already exists.');return}let a={id:uid('u'),displayName:n,username:u,password:p,role:'WxRC Superstar',superstarId:''};db.users.push(a);save();current=a;closeModal();enter();toastMsg('Account created')};
+}
+
 function login(){let u=db.users.find(x=>x.username===loginUser.value.trim()&&x.password===loginPass.value);if(!u){loginError.textContent='Incorrect username or password.';return}current=u;enter()}
 function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};enter()}
 function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
@@ -177,9 +191,11 @@ function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(
 function settings(){
  if(!isOwner()){go('Home');return}
  let subs=db.gimmickSubmissions||[];
- view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">WWE x Roblox Community management.</div></div></div>
- <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Account Management</h3><div class="sub">Create accounts for Owners, Staff and Superstars.</div></div><button class="btn primary" onclick="editUser()">+ Create Account</button></div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><div class="rowActions"><button class="btn small blue" onclick="editUser('${u.id}')">Edit</button>${u.id!=='u1'?`<button class="btn small danger" onclick="del('users','${u.id}')">Delete</button>`:''}</div></div>`).join('')}</div></div>
+ view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Owner / Admin management.</div></div></div>
+ <div class="settingsGroup"><h3>Superstar Sign-Up Code</h3><div class="sub">Shared 6-digit Try-Out code required for public Superstar registration.</div><form id="signupCodeForm"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" value="${esc(db.signupCode)}"></div><button class="btn primary">Save Code</button></form></div>
+ <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Account Management</h3><div class="sub">Only Owner / Admin can change accounts and roles.</div></div><button class="btn primary" onclick="editUser()">+ Create Account</button></div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><div class="rowActions"><button class="btn small blue" onclick="editUser('${u.id}')">Edit</button>${u.id!=='u1'?`<button class="btn small danger" onclick="del('users','${u.id}')">Delete</button>`:''}</div></div>`).join('')}</div></div>
  <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Submitted Superstar information.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} - Submitted by ${esc(g.submittedBy||'Unknown')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
+ signupCodeForm.onsubmit=e=>{e.preventDefault();let code=signupCodeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('Code must contain exactly 6 numbers.');return}db.signupCode=code;save();toastMsg('Sign-up code updated')};
 }
 function viewGimmick(id){
  let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
@@ -278,7 +294,7 @@ function editChampion(id=''){
 }
 function editUser(id=''){
  let o=db.users.find(x=>x.id===id)||{};
- openModal(id?'Edit Account':'Create Account',`<form id="uform">${formField('displayName',o.displayName||'')}${formField('username',o.username||'')}${formField('password',o.password||'','password')}<div class="field"><label>ROLE</label><select name="role">${['WxRC Owner','WxRC Staff','WxRC Superstar'].map(r=>`<option ${normalizeRole(o.role)===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId"><option value="">None</option>${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><button class="btn primary full">Save Account</button></form>`);
+ openModal(id?'Edit Account':'Create Account',`<form id="uform">${formField('displayName',o.displayName||'')}${formField('username',o.username||'')}${formField('password',o.password||'','password')}<div class="field"><label>ROLE</label><select name="role">${['WxRC Owner','WxRC Admin','WxRC Staff','WxRC Superstar'].map(r=>`<option ${normalizeRole(o.role)===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId"><option value="">None</option>${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><button class="btn primary full">Save Account</button></form>`);
  uform.onsubmit=e=>{e.preventDefault();let x=id?o:{id:uid('u')};['displayName','username','password','role','superstarId'].forEach(f=>x[f]=uform.elements[f].value.trim());if(db.users.some(y=>y.username===x.username&&y.id!==x.id)){alert('Username already exists.');return}if(!id)db.users.push(x);save();closeModal();renderNav();render();toastMsg('Account saved')};
 }
 function editTransaction(){openModal('WWE Coins Transaction',`<form id="tform">${formField('person')}${formField('amount','0','number')}${formField('note')}${formField('date',new Date().toISOString().slice(0,10))}<button class="btn primary full">Save Transaction</button></form>`);tform.onsubmit=e=>{e.preventDefault();db.transactions.push({id:uid('tr'),person:tform.person.value.trim(),amount:Number(tform.amount.value),note:tform.note.value.trim(),date:tform.date.value});save();closeModal();render();toastMsg('Transaction saved')}}
