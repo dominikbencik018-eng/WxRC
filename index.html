@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.0</title>
+<title>WWE x Roblox Community Online v4.0.2</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -161,6 +161,7 @@ async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Un
 function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
 async function logout(){await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
+const nav=['Home','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
 const navIcons={'Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
 function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
@@ -176,10 +177,11 @@ function mdy(d){if(!d)return '—';let p=d.split('-');if(p.length!==3)return d;r
 
 function submitGimmick(){
  view.innerHTML=`<div class="hero"><span class="badge red">WxRC SUPERSTAR</span><h1>Submit a Gimmick</h1><div class="muted">Fill in your Superstar information for WxRC Staff.</div></div><div class="card" style="margin-top:16px"><form id="gimmickForm">${formField('name')}${formField('nickname')}<div class="field"><label>BRAND</label><select name="brand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>STATUS</label><select name="status"><option>Active</option><option>Inactive</option></select></div>${formField('finisher')}${formField('signature')}${formField('theme')}${formField('debut')}${formField('height')}${formField('weight')}${formField('notes')}<button class="btn primary full">Submit Gimmick</button></form></div>`;
- gimmickForm.onsubmit=e=>{
+ gimmickForm.onsubmit=async e=>{
   e.preventDefault();let f=gimmickForm;
-  db.gimmickSubmissions.push({id:uid('gs'),submittedBy:current?.displayName||'Guest',name:f.name.value.trim(),nickname:f.nickname.value.trim(),brand:f.brand.value,status:f.status.value,finisher:f.finisher.value.trim(),signature:f.signature.value.trim(),theme:f.theme.value.trim(),debut:f.debut.value,height:f.height.value.trim(),weight:f.weight.value.trim(),notes:f.notes.value.trim()});
-  save();view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('Home')">Done</button></div>`;
+  if(isGuest()){alert('Please create an account or log in to submit a gimmick.');return}
+  let {error}=await sb.from('gimmick_submissions').insert({user_id:current.id,name:f.name.value.trim(),nickname:f.nickname.value.trim()||null,brand:f.brand.value||null,status:f.status.value||null,finisher:f.finisher.value.trim()||null,signature:f.signature.value.trim()||null,theme:f.theme.value.trim()||null,debut:f.debut.value||null,height:f.height.value.trim()||null,weight:f.weight.value.trim()||null,notes:f.notes.value.trim()||null});
+  if(error){alert(error.message);return}view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('Home')">Done</button></div>`;
  };
 }
 
