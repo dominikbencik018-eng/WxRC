@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.4.1</title>
+<title>WWE x Roblox Community Online v4.5</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -89,8 +89,17 @@ const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
 const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[]}, current=null, page='News';
-let unsavedChanges=false, pendingDeletes=[];
-function markUnsaved(){unsavedChanges=true;toastMsg('Unsaved changes — go to Settings to save');}
+let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];
+function markUnsaved(table=null,id=null,kind=null){
+ unsavedChanges=true;
+ if(table&&id){
+  const key=table+'|'+id;
+  const i=pendingChanges.findIndex(x=>x.key===key);
+  const item={key,table,id,kind};
+  if(i>=0)pendingChanges[i]=item;else pendingChanges.push(item);
+ }
+ toastMsg('Unsaved changes — go to Settings to save');
+}
 
 
 function mapRows(rows,kind){
@@ -147,47 +156,37 @@ async function commitAllChanges(){
  if(!canEdit())return false;
  if(saveInProgress)return await saveInProgress;
  saveInProgress=(async()=>{
-  const ops=[];
+  const rowFor=(table,id)=>{
+   if(table==='profiles'){const x=db.users.find(v=>v.id===id);return x&&{username:x.username,display_name:x.displayName,role:x.role,superstar_id:x.superstarId||null}}
+   if(table==='superstars'){const x=db.superstars.find(v=>v.id===id);return x&&{id:x.id,name:x.name,nickname:x.nickname||null,brand:x.brand||null,status:x.status||null,finisher:x.finisher||null,signature:x.signature||null,theme:x.theme||null,debut:x.debut||null,height:x.height||null,weight:x.weight||null,wins:Number(x.wins||0),losses:Number(x.losses||0),image:x.image||null}}
+   if(table==='championships'){const x=db.championships.find(v=>v.id===id);return x&&{id:x.id,name:x.name,brand:x.brand||null,status:x.status||null,image:x.image||null}}
+   if(table==='champions'){const x=db.champions.find(v=>v.id===id);return x&&{id:x.id,superstar_id:x.superstarId,title_id:x.titleId,date_won:x.dateWon,image:x.image||null,notes:x.notes||null}}
+   if(table==='champion_history'){const x=db.championHistory.find(v=>v.id===id);return x&&{id:x.id,superstar_id:x.superstarId||null,superstar_name:x.superstarName||null,title_id:x.titleId,date_won:x.dateWon,date_lost:x.dateLost||null,image:x.image||null,notes:x.notes||null}}
+   if(table==='shows'){const x=db.shows.find(v=>v.id===id);return x&&{id:x.id,name:x.name,show_date:x.date||null,show_time:x.time||null,status:x.status||null,venue:x.venue||null,image:x.image||null}}
+   if(table==='transactions'){const x=db.transactions.find(v=>v.id===id);return x&&{id:x.id,person:x.person,amount:Number(x.amount||0),note:x.note||null,transaction_date:x.date||null}}
+   return null;
+  };
   for(const d of pendingDeletes){
    const r=await sb.from(d.table).delete().eq('id',d.id);
    if(r.error){alert('SAVE FAILED — Delete: '+r.error.message);return false}
   }
-  if(db.users.length){
-   ops.push(['Accounts',{
-    then: async function(resolve){
-     try{
-      for(const x of db.users){
-       const patch={username:x.username,display_name:x.displayName,role:x.role,superstar_id:x.superstarId||null};
-       const r=await sb.from('profiles').update(patch).eq('id',x.id);
-       if(r.error){resolve({error:r.error});return}
-      }
-      resolve({error:null});
-     }catch(error){resolve({error})}
-    }
-   }]);
+  for(const c of pendingChanges){
+   if(pendingDeletes.some(d=>d.table===c.table&&d.id===c.id))continue;
+   const row=rowFor(c.table,c.id); if(!row)continue;
+   let r;
+   if(c.table==='profiles')r=await sb.from(c.table).update(row).eq('id',c.id);
+   else if(c.kind==='new')r=await sb.from(c.table).insert(row);
+   else r=await sb.from(c.table).update(row).eq('id',c.id);
+   if(r.error){alert('SAVE FAILED — '+c.table+': '+r.error.message);return false}
   }
-  if(db.superstars.length)ops.push(['Superstars',sb.from('superstars').upsert(db.superstars.map(x=>({id:x.id,name:x.name,nickname:x.nickname||null,brand:x.brand||null,status:x.status||null,finisher:x.finisher||null,signature:x.signature||null,theme:x.theme||null,debut:x.debut||null,height:x.height||null,weight:x.weight||null,wins:Number(x.wins||0),losses:Number(x.losses||0),image:x.image||null})))]);
-  if(db.championships.length)ops.push(['Championships',sb.from('championships').upsert(db.championships.map(x=>({id:x.id,name:x.name,brand:x.brand||null,status:x.status||null,image:x.image||null})))]);
-  if(db.champions.length)ops.push(['Champions',sb.from('champions').upsert(db.champions.map(x=>({id:x.id,superstar_id:x.superstarId,title_id:x.titleId,date_won:x.dateWon,image:x.image||null,notes:x.notes||null})))]);
-  if(db.championHistory.length)ops.push(['Champion History',sb.from('champion_history').upsert(db.championHistory.map(x=>({id:x.id,superstar_id:x.superstarId||null,superstar_name:x.superstarName||null,title_id:x.titleId,date_won:x.dateWon,date_lost:x.dateLost||null,image:x.image||null,notes:x.notes||null})))]);
-  if(db.shows.length)ops.push(['Shows',sb.from('shows').upsert(db.shows.map(x=>({id:x.id,name:x.name,show_date:x.date||null,show_time:x.time||null,status:x.status||null,venue:x.venue||null,image:x.image||null})))]);
-  if(db.transactions.length)ops.push(['WWE Coins',sb.from('transactions').upsert(db.transactions.map(x=>({id:x.id,person:x.person,amount:Number(x.amount||0),note:x.note||null,transaction_date:x.date||null})))]);
-  const results=await Promise.all(ops.map(async ([name,q])=>{try{const r=await q;return {name,...r}}catch(error){return {name,error}}}));
-  const bad=results.filter(r=>r.error);
-  if(bad.length){
-   console.error('WxRC save failed',bad);
-   alert('SAVE FAILED — '+bad.map(x=>x.name+': '+(x.error?.message||'Unknown error')).join('\\n'));
-   return false;
-  }
-  pendingDeletes=[];
-  unsavedChanges=false;
+  pendingDeletes=[];pendingChanges=[];unsavedChanges=false;
   await loadOnlineData();
   toastMsg('✓ All changes saved');
   return true;
  })();
  try{return await saveInProgress}finally{saveInProgress=null}
 }
-async function save(){markUnsaved();return true;}
+async function save(table=null,id=null,kind=null){markUnsaved(table,id,kind);return true;}
 
 function uid(p){return crypto.randomUUID()}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -383,7 +382,7 @@ function useGimmick(id){
  let s=db.superstars.find(x=>(x.name||'').toLowerCase()===g.name.toLowerCase());
  if(!s){s={id:uid('s'),image:'',wins:0,losses:0};db.superstars.push(s)}
  ['name','nickname','brand','status','finisher','signature','theme','debut','height','weight'].forEach(k=>s[k]=g[k]||'');
- save();toastMsg('Superstar profile updated');go('Superstars');
+ save('superstars',s.id,db.superstars.filter(x=>x.id===s.id).length?'edit':'new');go('Superstars');
 }
 async function deleteGimmick(id){if(!canEdit()||!confirm('Delete this gimmick submission?'))return;let {error}=await sb.from('gimmick_submissions').delete().eq('id',id);if(error){alert(error.message);return}db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);render()}
 function normalizeRole(r){return ({'Administrator':'WxRC Owner','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
@@ -422,7 +421,7 @@ function editGeneric(key,fields,id=''){
    if(f==='image'){const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'')}
    else x[f]=gform.elements[f].value.trim();
   }
-  if(!id)db[key].push(x);const ok=await save();if(!ok){await loadOnlineData();render();return}closeModal();render();
+  if(!id)db[key].push(x);const ok=await save(tableMap[key],x.id,id?'edit':'new');if(!ok){await loadOnlineData();render();return}closeModal();render();
  };
 }
 function editSuperstar(id=''){
@@ -430,7 +429,7 @@ function editSuperstar(id=''){
  let fields=['name','nickname','brand','status','finisher','signature','theme','debut','height','weight','wins','losses'];
  openModal(id?'Edit Superstar':'Add Superstar',`<form id="sform">${photoField(o.image||'','SUPERSTAR PHOTO')}<div class="two">${fields.map(f=>formField(f,o[f]??'',['wins','losses'].includes(f)?'number':'text')).join('')}</div><button class="btn primary full">Save Superstar</button></form>`);
  bindPhotoPreview();
- sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'');if(!id)db.superstars.push(x);const ok=await save();if(!ok){await loadOnlineData();render();return}closeModal();render()};
+ sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'');if(!id)db.superstars.push(x);const ok=await save('superstars',x.id,id?'edit':'new');if(!ok){await loadOnlineData();render();return}closeModal();render()};
 }
 function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div><div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
 async function deleteChampion(id){
@@ -456,19 +455,25 @@ function editChampion(id=''){
    if(previous){
     const ps=db.superstars.find(x=>x.id===previous.superstarId);
     db.championHistory.push({id:uid('h'),titleId,superstarId:previous.superstarId,superstarName:ps?.name||'',dateWon:previous.dateWon,dateLost:dateWon,image:previous.image||ps?.image||'',notes:previous.notes||''});
-    db.champions=db.champions.filter(x=>x.id!==previous.id);
+    pendingDeletes.push({table:'champions',id:previous.id});db.champions=db.champions.filter(x=>x.id!==previous.id);
    }
    db.champions.push({id:uid('c'),superstarId,titleId,dateWon,notes:cform.notes.value.trim(),image:file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):''});
   }
-  const ok=await save();if(!ok){await loadOnlineData();render();return}closeModal();render();
+  if(!id){
+   const newest=db.champions[db.champions.length-1];
+   if(newest)markUnsaved('champions',newest.id,'new');
+   const hist=db.championHistory[db.championHistory.length-1];
+   if(hist)markUnsaved('champion_history',hist.id,'new');
+  }else markUnsaved('champions',o.id,'edit');
+  const ok=true;if(!ok){await loadOnlineData();render();return}closeModal();render();
  };
 }
 function editUser(id=''){
  let o=db.users.find(x=>x.id===id);if(!o)return;
  openModal('Edit Account',`<form id="uform">${formField('displayName',o.displayName||'')}${formField('username',o.username||'')}<div class="field"><label>ROLE</label><select name="role">${['WxRC Owner','WxRC Admin','WxRC Staff','WxRC Superstar'].map(r=>`<option ${o.role===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId"><option value="">None</option>${db.superstars.map(s=>`<option value="${s.id}" ${o.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><button class="btn primary full">Save Account</button></form>`);
- uform.onsubmit=async e=>{e.preventDefault();let patch={display_name:uform.displayName.value.trim(),username:uform.username.value.trim(),role:uform.role.value,superstar_id:uform.superstarId.value||null};Object.assign(o,{displayName:patch.display_name,username:patch.username,role:patch.role,superstarId:patch.superstar_id||''});markUnsaved();closeModal();renderNav();render()};
+ uform.onsubmit=async e=>{e.preventDefault();let patch={display_name:uform.displayName.value.trim(),username:uform.username.value.trim(),role:uform.role.value,superstar_id:uform.superstarId.value||null};Object.assign(o,{displayName:patch.display_name,username:patch.username,role:patch.role,superstarId:patch.superstar_id||''});markUnsaved('profiles',o.id,'edit');closeModal();renderNav();render()};
 }
-function editTransaction(){openModal('WWE Coins Transaction',`<form id="tform">${formField('person')}${formField('amount','0','number')}${formField('note')}${formField('date',new Date().toISOString().slice(0,10))}<button class="btn primary full">Save Transaction</button></form>`);tform.onsubmit=e=>{e.preventDefault();db.transactions.push({id:uid('tr'),person:tform.person.value.trim(),amount:Number(tform.amount.value),note:tform.note.value.trim(),date:tform.date.value});save();closeModal();render();toastMsg('Transaction saved')}}
+function editTransaction(){openModal('WWE Coins Transaction',`<form id="tform">${formField('person')}${formField('amount','0','number')}${formField('note')}${formField('date',new Date().toISOString().slice(0,10))}<button class="btn primary full">Save Transaction</button></form>`);tform.onsubmit=e=>{e.preventDefault();const x={id:uid('tr'),person:tform.person.value.trim(),amount:Number(tform.amount.value),note:tform.note.value.trim(),date:tform.date.value};db.transactions.push(x);save('transactions',x.id,'new');closeModal();render()}}
 async function del(key,id){
  if(!canEdit()||!confirm('Delete this item? It will be permanently deleted after Save Changes in Settings.'))return;
  const table=tableMap[key];
