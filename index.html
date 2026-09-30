@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.3.2</title>
+<title>WWE x Roblox Community Online v5.3.3</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -169,6 +169,7 @@ async function loadOnlineData(){
   if(vals[8]&&!vals[8].error)db.permissions=vals[8].data||[];
   if(vals[9]&&!vals[9].error)db.appSettings=vals[9].data||null;
  }
+ saveDataCache();
  return results;
 }
 let saveInProgress=null;
@@ -225,6 +226,34 @@ function signupDetails(requestedRole,verifiedCode){
  openModal('Create '+requestedRole+' Account',`<div class="sub" style="margin-bottom:14px">Requested role: <b>${esc(requestedRole)}</b>. Management roles are finalized securely by the server.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('email','','email')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
  signupForm.onsubmit=async e=>{e.preventDefault();let f=signupForm;let {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{username:f.username.value.trim(),display_name:f.displayName.value.trim(),requested_role:requestedRole,registration_code:verifiedCode}}});if(error){alert(error.message);return}if(!data.session){closeModal();alert('Account created. Check your email if confirmation is enabled. The server will finalize the selected role after verification.');return}await finishAuth(data.user);closeModal();enter()};
 }
+
+const WXRC_DATA_CACHE='wxrcDataCacheV533';
+function saveDataCache(){
+ try{
+  localStorage.setItem(WXRC_DATA_CACHE,JSON.stringify({
+   savedAt:Date.now(),
+   superstars:db.superstars,championships:db.championships,champions:db.champions,
+   championHistory:db.championHistory,shows:db.shows,news:db.news,
+   announcements:db.announcements,awards:db.awards,hallOfFame:db.hallOfFame,
+   users:db.users,transactions:db.transactions,gimmickSubmissions:db.gimmickSubmissions,
+   activityLog:db.activityLog,superstarManagement:db.superstarManagement,
+   showMatches:db.showMatches,tryouts:db.tryouts,trash:db.trash,
+   permissions:db.permissions,appSettings:db.appSettings
+  }));
+ }catch(e){console.warn('WxRC cache save failed',e)}
+}
+function loadDataCache(){
+ try{
+  const c=JSON.parse(localStorage.getItem(WXRC_DATA_CACHE)||'null');
+  if(!c)return false;
+  ['superstars','championships','champions','championHistory','shows','news','announcements','awards','hallOfFame',
+   'users','transactions','gimmickSubmissions','activityLog','superstarManagement','showMatches','tryouts','trash','permissions'
+  ].forEach(k=>{if(Array.isArray(c[k]))db[k]=c[k]});
+  if(c.appSettings)db.appSettings=c.appSettings;
+  return true;
+ }catch(e){console.warn('WxRC cache load failed',e);return false}
+}
+
 async function finishAuth(user){
  let {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
  if(error){console.error('Profile load:',error);alert('Your account signed in, but the WxRC profile could not be loaded: '+error.message);return false}
@@ -241,7 +270,7 @@ async function login(){
   if(await finishAuth(data.user)){loginError.textContent='';enter();loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.error('Background data load:',e))}
  }catch(e){console.error(e);loginError.textContent='Login error: '+(e?.message||e)}
 }
-async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};enter();try{await loadOnlineData();renderNav();render()}catch(e){console.error(e)}}
+async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};loadDataCache();enter();loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.error(e))}
 function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
 async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
