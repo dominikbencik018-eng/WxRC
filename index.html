@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.3.7</title>
+<title>WWE x Roblox Community Online v5.3.8</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -482,7 +482,7 @@ function contracts(){generic('Contracts','Manage Superstar and Staff contracts.'
 function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(balances[t.person]||0)+Number(t.amount||0));view.innerHTML=`<div class="sectionHead"><div><h2>WWE Coins</h2><div class="sub">Community economy and transaction history.</div></div>${canEdit()?`<button class="btn primary" onclick="editTransaction()">+ Transaction</button>`:''}</div><div class="grid">${Object.entries(balances).map(([p,b])=>`<div class="card stat"><span class="muted">${esc(p)}</span><strong>${b}</strong><span class="badge gold">WWE COINS</span></div>`).join('')||empty()}</div><div class="sectionHead"><h3>Transactions</h3></div><div class="list">${db.transactions.slice().reverse().map(t=>`<div class="row"><div><b>${esc(t.person)}</b><div class="sub">${esc(t.note||'Transaction')} · ${esc(t.date||'')}</div></div><b>${Number(t.amount)>0?'+':''}${Number(t.amount)}</b></div>`).join('')||empty()}</div>`}
 async function settings(){
  if(!isManagement()){go('News');return}
- let subs=db.gimmickSubmissions||[];
+ let subs=(db.gimmickSubmissions||[]).filter(g=>(g.reviewStatus||'Pending')==='Pending');
  let cfg=db.appSettings;
  let signupCode=cfg?.signup_code||'';
  let roleCodes=[];
@@ -492,7 +492,7 @@ async function settings(){
  <div class="settingsGroup"><h3>Try-Out Sign Up Code</h3><div class="sub">Change the 6-digit code required when a new Superstar creates an account.</div><form id="signupCodeForm" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" value="${esc(signupCode)}" required></div><button class="btn primary">Change Code</button></form></div>
  ${isOwner()?`<div class="settingsGroup"><h3>Registration Codes</h3><div class="sub">Only the WxRC Owner can view and change management registration codes.</div>${roleCodes.map(r=>`<form class="roleCodeForm" data-role="${esc(r.role)}"><div class="field"><label>${esc(r.role)}</label><input name="code" inputmode="numeric" maxlength="6" value="${esc(r.code)}"></div><button class="btn small blue">Change Code</button></form>`).join('')}</div>`:''}
  <div class="settingsGroup"><h3>Account Management</h3><div class="sub">Owner/Admin can change account roles and linked Superstars.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
- <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} · ${esc(g.reviewStatus||'Pending')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small" onclick="reviewGimmick('${g.id}','Approved')">Approve</button><button class="btn small" onclick="reviewGimmick('${g.id}','Rejected')">Reject</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
+ <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} · ${esc(g.reviewStatus||'Pending')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small" onclick="reviewGimmick('${g.id}','Approved')">Accept</button><button class="btn small" onclick="reviewGimmick('${g.id}','Rejected')">Reject</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
  document.querySelectorAll('.roleCodeForm').forEach(f=>f.onsubmit=async e=>{e.preventDefault();let code=f.code.value.trim(),role=f.dataset.role;if(!/^\d{6}$/.test(code))return alert('Code must contain exactly 6 numbers.');let r=await sb.from('registration_codes').update({code,updated_at:new Date().toISOString()}).eq('role',role);if(r.error)return alert(r.error.message);toastMsg('Code updated')});
  const saveBtn=document.getElementById('saveAllChangesBtn');
  if(saveBtn)saveBtn.onclick=async()=>{saveBtn.disabled=true;saveBtn.textContent='Saving...';const ok=await commitAllChanges();if(ok){renderNav();render()}else{saveBtn.disabled=false;saveBtn.textContent='Save Changes'}};
@@ -502,14 +502,31 @@ function viewGimmick(id){
  let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
  openModal(g.name||'Gimmick Submission',`${g.image?`<img src="${esc(g.image)}" style="width:100%;max-height:420px;object-fit:cover;border-radius:18px;margin-bottom:16px">`:''}<div class="kv">${[['Nickname',g.nickname],['Brand',g.brand],['Status',g.status],['Finisher',g.finisher],['Signature',g.signature],['Theme Song',g.theme],['Debut',g.debut],['Height',g.height],['Weight',g.weight]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${g.notes?`<div class="field"><label>NOTES</label><div>${esc(g.notes)}</div></div>`:''}`);
 }
-function useGimmick(id){
- let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
- let s=db.superstars.find(x=>(x.name||'').toLowerCase()===g.name.toLowerCase());
- if(!s){s={id:uid('s'),image:'',wins:0,losses:0};db.superstars.push(s)}
- ['name','nickname','brand','status','finisher','signature','theme','debut','height','weight'].forEach(k=>s[k]=g[k]||'');if(g.image)s.image=g.image;
- save('superstars',s.id,db.superstars.filter(x=>x.id===s.id).length?'edit':'new');go('Superstars');
+async function useGimmick(id){
+ if(!canEdit())return;
+ const g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
+ const existing=db.superstars.find(x=>(x.name||'').trim().toLowerCase()===(g.name||'').trim().toLowerCase());
+ const row={
+  name:g.name||'Unnamed Superstar',nickname:g.nickname||null,brand:g.brand||null,status:g.status||'Active',
+  finisher:g.finisher||null,signature:g.signature||null,theme:g.theme||null,debut:g.debut||null,
+  height:g.height||null,weight:g.weight||null,image:g.image||null
+ };
+ let result;
+ if(existing){
+  result=await sb.from('superstars').update(row).eq('id',existing.id).select().single();
+ }else{
+  result=await sb.from('superstars').insert({...row,wins:0,losses:0}).select().single();
+ }
+ if(result.error)return alert('SUPERSTAR SAVE FAILED — '+result.error.message);
+ const removed=await sb.from('gimmick_submissions').delete().eq('id',id);
+ if(removed.error)return alert('Superstar was saved, but the submission could not be removed: '+removed.error.message);
+ await onlineActivity((existing?'Updated Superstar from gimmick: ':'Added Superstar from gimmick: ')+(g.name||''));
+ await loadOnlineData();
+ saveDataCache();
+ toastMsg(existing?'✓ Superstar updated':'✓ Superstar added');
+ page='Superstars';renderNav();superstars();
 }
-async function reviewGimmick(id,status){let r=await sb.from('gimmick_submissions').update({review_status:status}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity(status+' gimmick submission');await loadOnlineData();settings()}
+async function reviewGimmick(id,status){if(!canEdit())return;let r=await sb.from('gimmick_submissions').update({review_status:status}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity(status+' gimmick submission');await loadOnlineData();saveDataCache();settings();toastMsg(status==='Approved'?'✓ Gimmick accepted':'Gimmick rejected')}
 async function deleteGimmick(id){if(!canEdit()||!confirm('Delete this gimmick submission?'))return;let {error}=await sb.from('gimmick_submissions').delete().eq('id',id);if(error){alert(error.message);return}db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);render()}
 function normalizeRole(r){return ({'Administrator':'WxRC Administrator','WxRC Admin':'WxRC Administrator','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
 function generic(title,desc,key,fields){view.innerHTML=`<div class="sectionHead"><div><h2>${title}</h2><div class="sub">${desc}</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("${key}",${JSON.stringify(fields)})'>+ Add</button>`:''}</div><div class="list">${db[key].map(o=>`<div class="row"><div class="rowMain">${o.image?`<img class="thumb" src="${esc(o.image)}">`:''}<div><b>${esc(o.name||o.person||'Item')}</b><div class="sub">${fields.filter(f=>f!=='name'&&f!=='image').map(f=>esc(o[f]||'')).filter(Boolean).join(' · ')}</div></div></div>${canEdit()?`<div class="rowActions"><button class="btn small blue" onclick='editGeneric("${key}",${JSON.stringify(fields)},"${o.id}")'>Edit</button><button class="btn small danger" onclick="del('${key}','${o.id}')">Delete</button></div>`:''}</div>`).join('')||empty()}</div>`}
