@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.3.4</title>
+<title>WWE x Roblox Community Online v5.3.5</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -326,7 +326,7 @@ function go(n){
  view.innerHTML='<div class="card"><div class="sub">Loading…</div></div>';
  requestAnimationFrame(()=>{renderNav();render()});
 }
-function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 
@@ -421,9 +421,11 @@ function backToChampions(){
  pageTitle.textContent='Champions';
  renderNav();
  champions();
- window.scrollTo({top:0,behavior:'instant'});
+ try{window.scrollTo(0,0)}catch(e){}
 }
+let openChampionshipHistoryId=null;
 function championshipHistory(titleId){
+ openChampionshipHistoryId=titleId;
  page='Championship History';
  pageTitle.textContent='Championship History';
  renderNav();
@@ -432,7 +434,15 @@ function championshipHistory(titleId){
  let rows=[];
  if(c)rows.push({id:c.id,name:s?.name||'Unknown Superstar',dateWon:c.dateWon,dateLost:'',current:true,notes:c.notes||''});
  hist.forEach(h=>rows.push({id:h.id,name:h.superstarName||db.superstars.find(x=>x.id===h.superstarId)?.name||'Unknown Superstar',dateWon:h.dateWon,dateLost:h.dateLost,current:false,notes:h.notes||''}));
- view.innerHTML=`<div class="sectionHead"><div><button class="btn ghost small" onclick="backToChampions()">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+ view.innerHTML=`<div class="sectionHead"><div><button type="button" class="btn ghost small" id="championsBackBtn">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+ const backBtn=document.getElementById('championsBackBtn');
+ if(backBtn){
+  backBtn.addEventListener('click',function(e){
+   e.preventDefault();
+   e.stopPropagation();
+   backToChampions();
+  });
+ }
 }
 function deleteHistory(id,titleId){
  const x=(db.championHistory||[]).find(h=>h.id===id);if(!x)return;
