@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v4.5</title>
+<title>WWE x Roblox Community Online v5.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -88,7 +88,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
 const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[]}, current=null, page='News';
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[]}, current=null, page='News';
 let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];
 function markUnsaved(table=null,id=null,kind=null){
  unsavedChanges=true;
@@ -109,7 +109,7 @@ function mapRows(rows,kind){
   if(kind==='history')return {id:x.id,superstarId:x.superstar_id,superstarName:x.superstar_name||'',titleId:x.title_id,dateWon:x.date_won,dateLost:x.date_lost||'',image:x.image||'',notes:x.notes||''};
   if(kind==='shows')return {id:x.id,name:x.name||'',date:x.show_date||'',time:x.show_time||'',status:x.status||'',venue:x.venue||'',image:x.image||''};
   if(kind==='transactions')return {id:x.id,person:x.person||'',amount:x.amount||0,note:x.note||'',date:x.transaction_date||''};
-  if(kind==='gimmicks')return {id:x.id,userId:x.user_id||'',name:x.name||'',nickname:x.nickname||'',brand:x.brand||'',status:x.status||'',finisher:x.finisher||'',signature:x.signature||'',theme:x.theme||'',debut:x.debut||'',height:x.height||'',weight:x.weight||'',notes:x.notes||'',submittedBy:'Online User'};
+  if(kind==='gimmicks')return {id:x.id,userId:x.user_id||'',name:x.name||'',nickname:x.nickname||'',brand:x.brand||'',status:x.status||'',finisher:x.finisher||'',signature:x.signature||'',theme:x.theme||'',debut:x.debut||'',height:x.height||'',weight:x.weight||'',notes:x.notes||'',image:x.image||'',reviewStatus:x.review_status||'Pending',submittedBy:'Online User'};
   return x;
  });
 }
@@ -120,7 +120,10 @@ async function loadOnlineData(){
   ['champions','champions','created_at'],
   ['champion_history','history','created_at'],
   ['shows','shows','created_at'],
-  ['news','news','published_at']
+  ['news','news','published_at'],
+  ['announcements','announcements','created_at'],
+  ['awards','awards','created_at'],
+  ['hall_of_fame','hallOfFame','created_at']
  ];
  const results=await Promise.all(specs.map(async ([table,kind,order])=>{
   try{
@@ -137,17 +140,24 @@ async function loadOnlineData(){
   else if(r.table==='champion_history')db.championHistory=mapRows(r.data,'history');
   else if(r.table==='shows')db.shows=mapRows(r.data,'shows');
   else if(r.table==='news')db.news=r.data.map(x=>({id:x.id,title:x.title||'',content:x.content||'',author:x.author||'',image:x.image||'',publishedAt:x.published_at||x.created_at||''}));
+  else if(r.table==='announcements')db.announcements=r.data||[];
+  else if(r.table==='awards')db.awards=r.data||[];
+  else if(r.table==='hall_of_fame')db.hallOfFame=r.data||[];
  }
  if(current && isOwner()){
   const extra=await Promise.allSettled([
    sb.from('profiles').select('*'),
    sb.from('transactions').select('*').order('created_at'),
-   sb.from('gimmick_submissions').select('*').order('created_at')
+   sb.from('gimmick_submissions').select('*').order('created_at'),
+   sb.from('activity_log').select('*').order('created_at',{ascending:false}),
+   sb.from('superstar_management').select('*')
   ]);
   const vals=extra.map(x=>x.status==='fulfilled'?x.value:null);
   if(vals[0]&&!vals[0].error)db.users=mapRows(vals[0].data,'profiles');
   if(vals[1]&&!vals[1].error)db.transactions=mapRows(vals[1].data,'transactions');
   if(vals[2]&&!vals[2].error)db.gimmickSubmissions=mapRows(vals[2].data,'gimmicks');
+  if(vals[3]&&!vals[3].error)db.activityLog=vals[3].data||[];
+  if(vals[4]&&!vals[4].error)db.superstarManagement=vals[4].data||[];
  }
  return results;
 }
@@ -223,12 +233,37 @@ async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Un
 function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
 async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
-const nav=['News','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Settings'];
-const navIcons={'News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
+const WXRC_META_KEY='wxrcMetaV5';
+let meta=JSON.parse(localStorage.getItem(WXRC_META_KEY)||'{"announcements":[],"activity":[],"maintenance":false,"maintenanceMessage":"WxRC is currently under maintenance."}');
+function saveMeta(){localStorage.setItem(WXRC_META_KEY,JSON.stringify(meta))}
+function logActivity(t){meta.activity.unshift({id:uid('a'),text:t,date:new Date().toISOString()});meta.activity=meta.activity.slice(0,100);saveMeta()}
+function dashboard(){
+ let next=(db.shows||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0],ann=(db.announcements||[])[0];
+ view.innerHTML=`<div class="hero"><span class="badge red">MANAGEMENT CENTER</span><h1>WxRC Dashboard</h1><div class="muted">Everything important in one place.</div></div><div class="grid" style="margin-top:16px">${[['Superstars',db.superstars.length],['Champions',db.champions.length],['Gimmick Submissions',(db.gimmickSubmissions||[]).length],['Shows',db.shows.length]].map(x=>`<div class="card stat"><span class="muted">${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</div>${ann?`<div class="card" style="margin-top:16px"><span class="badge red">${ann.pinned?'PINNED':'ANNOUNCEMENT'}</span><h3>${esc(ann.title)}</h3><div>${esc(ann.content)}</div></div>`:''}<div class="card" style="margin-top:16px"><h3>Next Show</h3>${next?`<b>${esc(next.name)}</b><div class="sub">${esc(next.date||'')} ${esc(next.time||'')} · ${esc(next.venue||'')}</div>`:empty()}</div>`}
+function searchCenter(){view.innerHTML=`<div class="sectionHead"><div><h2>Search</h2><div class="sub">Search Superstars and Championships.</div></div></div><div class="field"><input id="globalSearch" placeholder="Search WxRC..."></div><div id="searchResults"></div>`;globalSearch.oninput=()=>{let q=globalSearch.value.toLowerCase().trim(),ss=db.superstars.filter(x=>(x.name+' '+(x.nickname||'')+' '+(x.brand||'')).toLowerCase().includes(q)),tt=db.championships.filter(x=>(x.name+' '+(x.brand||'')).toLowerCase().includes(q));searchResults.innerHTML=!q?'':`<div class="list">${ss.map(x=>`<div class="row" onclick="profile('${x.id}')"><b>${esc(x.name)}</b><span class="badge">${esc(x.brand||'')}</span></div>`).join('')}${tt.map(x=>`<div class="row"><b>${esc(x.name)}</b><span class="badge gold">Championship</span></div>`).join('')}</div>`}}
+async function onlineActivity(action){if(!isOwner())return;await sb.from('activity_log').insert({actor_id:current.id,actor_name:current.displayName,action})}
+async function management(){
+ if(!isOwner()){go('Dashboard');return}
+ view.innerHTML=`<div class="sectionHead"><div><h2>Management</h2><div class="sub">Shared online WxRC administration.</div></div></div>
+ <div class="settingsGroup"><h3>Announcements</h3><form id="annForm">${formField('title')}${formField('text')}<label><input name="pinned" type="checkbox"> Pin announcement</label><button class="btn primary full" style="margin-top:12px">Publish</button></form><div class="list">${(db.announcements||[]).map(a=>`<div class="row"><div><b>${esc(a.title)}</b><div class="sub">${esc(a.content)}</div></div><button class="btn small danger" onclick="deleteAnnouncement('${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Awards</h3><form id="awardForm">${formField('name')}${formField('winner')}${formField('award_year',new Date().getFullYear(),'number')}${formField('notes')}<button class="btn primary full">Add Award</button></form><div class="list">${(db.awards||[]).map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="sub">${esc(a.winner||'')} · ${esc(a.award_year||'')}</div></div><button class="btn small danger" onclick="deleteShared('awards','${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Hall of Fame</h3><form id="hofForm">${formField('name')}${formField('inducted_year',new Date().getFullYear(),'number')}${formField('notes')}<button class="btn primary full">Induct</button></form><div class="list">${(db.hallOfFame||[]).map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="sub">Class of ${esc(a.inducted_year||'')}</div></div><button class="btn small danger" onclick="deleteShared('hall_of_fame','${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Activity Log</h3>${(db.activityLog||[]).slice(0,30).map(a=>`<div class="row"><div>${esc(a.action)}<div class="sub">${esc(a.actor_name||'Management')} · ${new Date(a.created_at).toLocaleString()}</div></div></div>`).join('')||empty()}</div>
+ <div class="settingsGroup"><h3>Superstar Management</h3><div class="sub">Availability, attendance, warnings/strikes, transfers and gallery are stored in the shared Superstar Management table. Open a Superstar profile to manage these records in the next UI pass.</div></div>
+ <div class="settingsGroup"><h3>Backup</h3><button class="btn" onclick="exportBackup()">Export JSON Backup</button></div>`;
+ annForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('announcements').insert({title:annForm.title.value.trim(),content:annForm.text.value.trim(),pinned:annForm.pinned.checked});if(r.error)return alert(r.error.message);await onlineActivity('Published announcement: '+annForm.title.value.trim());await loadOnlineData();management()};
+ awardForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('awards').insert({name:awardForm.name.value.trim(),winner:awardForm.winner.value.trim()||null,award_year:Number(awardForm.award_year.value)||null,notes:awardForm.notes.value.trim()||null});if(r.error)return alert(r.error.message);await onlineActivity('Added award: '+awardForm.name.value.trim());await loadOnlineData();management()};
+ hofForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('hall_of_fame').insert({name:hofForm.name.value.trim(),inducted_year:Number(hofForm.inducted_year.value)||null,notes:hofForm.notes.value.trim()||null});if(r.error)return alert(r.error.message);await onlineActivity('Hall of Fame induction: '+hofForm.name.value.trim());await loadOnlineData();management()};
+}
+async function deleteAnnouncement(id){if(!confirm('Delete this announcement?'))return;let r=await sb.from('announcements').delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted an announcement');await loadOnlineData();management()}
+async function deleteShared(table,id){if(!confirm('Delete this item?'))return;let r=await sb.from(table).delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted '+table+' item');await loadOnlineData();management()}
+function exportBackup(){const b=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),db,meta},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='WxRC-backup.json';a.click()}
+const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Management','Settings'];
+const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
-function renderNav(){let allowed=nav.filter(n=>n!=='Settings'||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
+function renderNav(){let allowed=nav.filter(n=>!['Settings','Management'].includes(n)||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){page=n;renderNav();render()}
-function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'News':news,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 
@@ -239,37 +274,23 @@ async function refreshApp(){
 }
 function cropImageFile(file,aspect=1){
  return new Promise((resolve,reject)=>{
-  const reader=new FileReader();
-  reader.onerror=reject;
-  reader.onload=()=>{
-   const img=new Image();
-   img.onload=()=>{
-    const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';
-    overlay.innerHTML=`<div style="width:min(94vw,520px);background:#11151d;border:1px solid #2a303b;border-radius:18px;padding:16px"><h2 style="margin:0 0 12px">Crop Photo</h2><div style="overflow:hidden;border-radius:14px;background:#000;aspect-ratio:${aspect};position:relative"><img id="cropImg" src="${reader.result}" style="width:100%;height:100%;object-fit:cover"></div><div class="field"><label>ZOOM</label><input id="cropZoom" type="range" min="100" max="300" value="100"></div><div class="field"><label>LEFT / RIGHT</label><input id="cropX" type="range" min="-100" max="100" value="0"></div><div class="field"><label>UP / DOWN</label><input id="cropY" type="range" min="-100" max="100" value="0"></div><div style="display:flex;gap:8px"><button id="cropCancel" class="btn ghost" style="flex:1">Cancel</button><button id="cropDone" class="btn primary" style="flex:1">Use Photo</button></div></div>`;
-    document.body.appendChild(overlay);
-    const ci=overlay.querySelector('#cropImg'), zoom=overlay.querySelector('#cropZoom'), xs=overlay.querySelector('#cropX'), ys=overlay.querySelector('#cropY');
-    const preview=()=>{ci.style.transform=`scale(${Number(zoom.value)/100}) translate(${Number(xs.value)/4}px,${Number(ys.value)/4}px)`};
-    zoom.oninput=xs.oninput=ys.oninput=preview;
+  const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{
+   const source=new Image();source.onerror=reject;source.onload=()=>{
+    const overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;background:#07090d;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';
+    overlay.innerHTML=`<div style="width:min(96vw,560px);display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button id="cropCancel" class="btn ghost">Cancel</button><b>Adjust Photo</b><button id="cropDone" class="btn primary">Use Photo</button></div><div id="cropStage" style="width:100%;aspect-ratio:${aspect};position:relative;overflow:hidden;background:#000;border-radius:20px;touch-action:none"><img id="cropImg" src="${reader.result}" draggable="false" style="position:absolute;left:50%;top:50%;max-width:none;user-select:none;pointer-events:none"><div style="position:absolute;inset:0;border:2px solid rgba(255,255,255,.85);border-radius:20px;pointer-events:none"></div></div><div class="sub" style="text-align:center">Drag to reposition • Pinch to zoom</div><div style="display:flex;gap:8px"><button id="cropReset" class="btn ghost" style="flex:1">Reset</button><button id="cropMinus" class="btn ghost">−</button><button id="cropPlus" class="btn ghost">＋</button></div></div>`;
+    document.body.appendChild(overlay);const stage=overlay.querySelector('#cropStage'),im=overlay.querySelector('#cropImg');let scale=1,x=0,y=0,last=null,pinch=null;
+    const fit=()=>{const r=stage.getBoundingClientRect();scale=Math.max(r.width/source.width,r.height/source.height);x=0;y=0;draw()};
+    const draw=()=>{im.style.width=source.width+'px';im.style.height=source.height+'px';im.style.transform=`translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`};
+    const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+    stage.ontouchstart=e=>{e.preventDefault();if(e.touches.length===1)last={x:e.touches[0].clientX,y:e.touches[0].clientY};if(e.touches.length===2)pinch={d:dist(e.touches),s:scale}};
+    stage.ontouchmove=e=>{e.preventDefault();if(e.touches.length===1&&last){x+=e.touches[0].clientX-last.x;y+=e.touches[0].clientY-last.y;last={x:e.touches[0].clientX,y:e.touches[0].clientY};draw()}else if(e.touches.length===2&&pinch){scale=Math.max(.03,pinch.s*dist(e.touches)/pinch.d);draw()}};
+    stage.ontouchend=()=>{last=null;pinch=null};
+    overlay.querySelector('#cropMinus').onclick=()=>{scale*=.9;draw()};overlay.querySelector('#cropPlus').onclick=()=>{scale*=1.1;draw()};overlay.querySelector('#cropReset').onclick=fit;
     overlay.querySelector('#cropCancel').onclick=()=>{overlay.remove();resolve(null)};
-    overlay.querySelector('#cropDone').onclick=()=>{
-     const nw=img.naturalWidth,nh=img.naturalHeight,a=Number(aspect)||1,z=Number(zoom.value)/100;
-     let bw,bh;if(nw/nh>a){bh=nh;bw=nh*a}else{bw=nw;bh=nw/a}
-     let cw=bw/z,ch=bh/z;
-     let maxX=(nw-cw)/2,maxY=(nh-ch)/2;
-     let cx=nw/2+(Number(xs.value)/100)*maxX,cy=nh/2+(Number(ys.value)/100)*maxY;
-     let sx=Math.max(0,Math.min(nw-cw,cx-cw/2)),sy=Math.max(0,Math.min(nh-ch,cy-ch/2));
-     const canvas=document.createElement('canvas');
-     const max=1200;
-     if(a>=1){canvas.width=Math.min(max,Math.round(cw));canvas.height=Math.round(canvas.width/a)}
-     else{canvas.height=Math.min(max,Math.round(ch));canvas.width=Math.round(canvas.height*a)}
-     canvas.getContext('2d').drawImage(img,sx,sy,cw,ch,0,0,canvas.width,canvas.height);
-     const data=canvas.toDataURL('image/jpeg',.88);overlay.remove();resolve(data);
-    };
-   };
-   img.onerror=reject;img.src=reader.result;
-  };
-  reader.readAsDataURL(file);
+    overlay.querySelector('#cropDone').onclick=()=>{const r=stage.getBoundingClientRect(),outW=Math.min(1200,Math.max(500,Math.round(r.width*2))),outH=Math.round(outW/aspect),factor=outW/r.width,c=document.createElement('canvas');c.width=outW;c.height=outH;const ctx=c.getContext('2d');ctx.translate(outW/2+x*factor,outH/2+y*factor);ctx.scale(scale*factor,scale*factor);ctx.drawImage(source,-source.width/2,-source.height/2);const data=c.toDataURL('image/jpeg',.88);overlay.remove();resolve(data)};
+    requestAnimationFrame(fit);
+   };source.src=reader.result;
+  };reader.readAsDataURL(file);
  });
 }
 async function prepareCropInput(input,aspect=1,previewId=''){
@@ -368,22 +389,23 @@ async function settings(){
  <div class="settingsGroup" style="border:1px solid ${unsavedChanges?'#d83b3b':'#2a303b'}"><h3>${unsavedChanges?'● Unsaved Changes':'✓ Changes Saved'}</h3><div class="sub">${unsavedChanges?'Your edits are only in this session. Save them to Supabase before logging out.':'There are no pending app changes.'}</div><button id="saveAllChangesBtn" class="btn primary full" style="margin-top:12px" ${unsavedChanges?'':'disabled'}>Save Changes</button></div>
  <div class="settingsGroup"><h3>Try-Out Sign Up Code</h3><div class="sub">Change the 6-digit code required when a new Superstar creates an account.</div><form id="signupCodeForm" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" value="${esc(signupCode)}" required></div><button class="btn primary">Change Code</button></form></div>
  <div class="settingsGroup"><h3>Account Management</h3><div class="sub">Owner/Admin can change account roles and linked Superstars.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
- <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
+ <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} · ${esc(g.reviewStatus||'Pending')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small" onclick="reviewGimmick('${g.id}','Approved')">Approve</button><button class="btn small" onclick="reviewGimmick('${g.id}','Rejected')">Reject</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
  const saveBtn=document.getElementById('saveAllChangesBtn');
  if(saveBtn)saveBtn.onclick=async()=>{saveBtn.disabled=true;saveBtn.textContent='Saving...';const ok=await commitAllChanges();if(ok){renderNav();render()}else{saveBtn.disabled=false;saveBtn.textContent='Save Changes'}};
  signupCodeForm.onsubmit=async e=>{e.preventDefault();let code=signupCodeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {error}=await sb.from('app_settings').update({signup_code:code}).eq('id',1);if(error){alert(error.message);return}toastMsg('Try-Out code changed')};
 }
 function viewGimmick(id){
  let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
- openModal(g.name||'Gimmick Submission',`<div class="kv">${[['Nickname',g.nickname],['Brand',g.brand],['Status',g.status],['Finisher',g.finisher],['Signature',g.signature],['Theme Song',g.theme],['Debut',g.debut],['Height',g.height],['Weight',g.weight]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${g.notes?`<div class="field"><label>NOTES</label><div>${esc(g.notes)}</div></div>`:''}`);
+ openModal(g.name||'Gimmick Submission',`${g.image?`<img src="${esc(g.image)}" style="width:100%;max-height:420px;object-fit:cover;border-radius:18px;margin-bottom:16px">`:''}<div class="kv">${[['Nickname',g.nickname],['Brand',g.brand],['Status',g.status],['Finisher',g.finisher],['Signature',g.signature],['Theme Song',g.theme],['Debut',g.debut],['Height',g.height],['Weight',g.weight]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${g.notes?`<div class="field"><label>NOTES</label><div>${esc(g.notes)}</div></div>`:''}`);
 }
 function useGimmick(id){
  let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
  let s=db.superstars.find(x=>(x.name||'').toLowerCase()===g.name.toLowerCase());
  if(!s){s={id:uid('s'),image:'',wins:0,losses:0};db.superstars.push(s)}
- ['name','nickname','brand','status','finisher','signature','theme','debut','height','weight'].forEach(k=>s[k]=g[k]||'');
+ ['name','nickname','brand','status','finisher','signature','theme','debut','height','weight'].forEach(k=>s[k]=g[k]||'');if(g.image)s.image=g.image;
  save('superstars',s.id,db.superstars.filter(x=>x.id===s.id).length?'edit':'new');go('Superstars');
 }
+async function reviewGimmick(id,status){let r=await sb.from('gimmick_submissions').update({review_status:status}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity(status+' gimmick submission');await loadOnlineData();settings()}
 async function deleteGimmick(id){if(!canEdit()||!confirm('Delete this gimmick submission?'))return;let {error}=await sb.from('gimmick_submissions').delete().eq('id',id);if(error){alert(error.message);return}db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);render()}
 function normalizeRole(r){return ({'Administrator':'WxRC Owner','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
 function generic(title,desc,key,fields){view.innerHTML=`<div class="sectionHead"><div><h2>${title}</h2><div class="sub">${desc}</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("${key}",${JSON.stringify(fields)})'>+ Add</button>`:''}</div><div class="list">${db[key].map(o=>`<div class="row"><div class="rowMain">${o.image?`<img class="thumb" src="${esc(o.image)}">`:''}<div><b>${esc(o.name||o.person||'Item')}</b><div class="sub">${fields.filter(f=>f!=='name'&&f!=='image').map(f=>esc(o[f]||'')).filter(Boolean).join(' · ')}</div></div></div>${canEdit()?`<div class="rowActions"><button class="btn small blue" onclick='editGeneric("${key}",${JSON.stringify(fields)},"${o.id}")'>Edit</button><button class="btn small danger" onclick="del('${key}','${o.id}')">Delete</button></div>`:''}</div>`).join('')||empty()}</div>`}
@@ -431,7 +453,12 @@ function editSuperstar(id=''){
  bindPhotoPreview();
  sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'');if(!id)db.superstars.push(x);const ok=await save('superstars',x.id,id?'edit':'new');if(!ok){await loadOnlineData();render();return}closeModal();render()};
 }
-function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div><div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
+async function manageSuperstar(id){
+ if(!isOwner())return;let s=db.superstars.find(x=>x.id===id),m=(db.superstarManagement||[]).find(x=>x.superstar_id===id)||{};
+ openModal('Manage '+s.name,`<form id="smForm"><div class="field"><label>AVAILABILITY</label><select name="availability">${['Active','Inactive','Injured','Suspended','Part-Time','Released'].map(v=>`<option ${m.availability===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="field"><label>ATTENDANCE NOTES (JSON / text)</label><textarea name="attendance">${esc(typeof m.attendance==='string'?m.attendance:JSON.stringify(m.attendance||[]))}</textarea></div><div class="field"><label>WARNINGS / STRIKES</label><textarea name="warnings">${esc(typeof m.warnings==='string'?m.warnings:JSON.stringify(m.warnings||[]))}</textarea></div><div class="field"><label>TRANSFERS</label><textarea name="transfers">${esc(typeof m.transfers==='string'?m.transfers:JSON.stringify(m.transfers||[]))}</textarea></div><button class="btn primary full">Save Management Record</button></form>`);
+ smForm.onsubmit=async e=>{e.preventDefault();const parse=v=>{try{return JSON.parse(v)}catch{return [v]}};let row={superstar_id:id,availability:smForm.availability.value,attendance:parse(smForm.attendance.value),warnings:parse(smForm.warnings.value),transfers:parse(smForm.transfers.value)};let r=m.id?await sb.from('superstar_management').update(row).eq('id',m.id):await sb.from('superstar_management').insert(row);if(r.error)return alert(r.error.message);await onlineActivity('Updated management record for '+s.name);await loadOnlineData();closeModal();profile(id)}
+}
+function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<button class="btn small blue" style="margin-top:10px" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
 async function deleteChampion(id){
  const c=db.champions.find(x=>x.id===id); if(!c)return;
  const st=db.superstars.find(x=>x.id===c.superstarId);
