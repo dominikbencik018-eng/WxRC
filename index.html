@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.3.3</title>
+<title>WWE x Roblox Community Online v5.3.4</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -416,13 +416,23 @@ function reignTime(start,end){
 }
 function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CHAMPION</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignTime(c.dateWon)}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" data-vacate-title="${t.id}" onclick="event.stopPropagation();vacateChampionship('${t.id}')">VACATE CHAMPIONSHIP</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
 function champions(){view.innerHTML=`<div class="sectionHead"><div><h2>Champions</h2><div class="sub">Current title holders. Tap a champion to see the full title history.</div></div>${canEdit()?`<button class="btn primary" onclick="editChampion()">+ Set New Champion</button>`:''}</div>${champList()}`}
+function backToChampions(){
+ page='Champions';
+ pageTitle.textContent='Champions';
+ renderNav();
+ champions();
+ window.scrollTo({top:0,behavior:'instant'});
+}
 function championshipHistory(titleId){
+ page='Championship History';
+ pageTitle.textContent='Championship History';
+ renderNav();
  const t=db.championships.find(x=>x.id===titleId); const c=activeChampionFor(titleId); const s=c?db.superstars.find(x=>x.id===c.superstarId):null;
  let hist=(db.championHistory||[]).filter(h=>h.titleId===titleId).sort((a,b)=>(b.dateWon||'').localeCompare(a.dateWon||''));
  let rows=[];
  if(c)rows.push({id:c.id,name:s?.name||'Unknown Superstar',dateWon:c.dateWon,dateLost:'',current:true,notes:c.notes||''});
  hist.forEach(h=>rows.push({id:h.id,name:h.superstarName||db.superstars.find(x=>x.id===h.superstarId)?.name||'Unknown Superstar',dateWon:h.dateWon,dateLost:h.dateLost,current:false,notes:h.notes||''}));
- view.innerHTML=`<div class="sectionHead"><div><button class="btn ghost small" onclick="go('Champions')">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+ view.innerHTML=`<div class="sectionHead"><div><button class="btn ghost small" onclick="backToChampions()">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
 }
 function deleteHistory(id,titleId){
  const x=(db.championHistory||[]).find(h=>h.id===id);if(!x)return;
