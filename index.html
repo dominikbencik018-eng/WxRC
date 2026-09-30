@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.1</title>
+<title>WWE x Roblox Community Online v5.3</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -88,8 +88,8 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
 const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[]}, current=null, page='News';
-let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],tryouts:[],trash:[],permissions:[]}, current=null, page='News';
+let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];function unsavedCount(){return pendingChanges.length+pendingDeletes.length}
 function markUnsaved(table=null,id=null,kind=null){
  unsavedChanges=true;
  if(table&&id){
@@ -144,13 +144,17 @@ async function loadOnlineData(){
   else if(r.table==='awards')db.awards=r.data||[];
   else if(r.table==='hall_of_fame')db.hallOfFame=r.data||[];
  }
- if(current && isOwner()){
+ if(current && isManagement()){
   const extra=await Promise.allSettled([
    sb.from('profiles').select('*'),
    sb.from('transactions').select('*').order('created_at'),
    sb.from('gimmick_submissions').select('*').order('created_at'),
    sb.from('activity_log').select('*').order('created_at',{ascending:false}),
-   sb.from('superstar_management').select('*')
+   sb.from('superstar_management').select('*'),
+   sb.from('show_matches').select('*').order('created_at'),
+   sb.from('tryouts').select('*').order('created_at',{ascending:false}),
+   sb.from('recently_deleted').select('*').order('deleted_at',{ascending:false}),
+   sb.from('admin_permissions').select('*')
   ]);
   const vals=extra.map(x=>x.status==='fulfilled'?x.value:null);
   if(vals[0]&&!vals[0].error)db.users=mapRows(vals[0].data,'profiles');
@@ -158,6 +162,10 @@ async function loadOnlineData(){
   if(vals[2]&&!vals[2].error)db.gimmickSubmissions=mapRows(vals[2].data,'gimmicks');
   if(vals[3]&&!vals[3].error)db.activityLog=vals[3].data||[];
   if(vals[4]&&!vals[4].error)db.superstarManagement=vals[4].data||[];
+  if(vals[5]&&!vals[5].error)db.showMatches=vals[5].data||[];
+  if(vals[6]&&!vals[6].error)db.tryouts=vals[6].data||[];
+  if(vals[7]&&!vals[7].error)db.trash=vals[7].data||[];
+  if(vals[8]&&!vals[8].error)db.permissions=vals[8].data||[];
  }
  return results;
 }
@@ -200,17 +208,20 @@ async function save(table=null,id=null,kind=null){markUnsaved(table,id,kind);ret
 
 function uid(p){return crypto.randomUUID()}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function canEdit(){return current && ['WxRC Owner','WxRC Admin','Administrator'].includes(current.role)}
-function isOwner(){return current && ['WxRC Owner','WxRC Admin','Administrator'].includes(current.role)}
+function isOwner(){return current?.role==='WxRC Owner'}
+function isAdministrator(){return current && ['WxRC Owner','WxRC Administrator','WxRC Admin','Administrator'].includes(current.role)}
+function isModerator(){return current?.role==='WxRC Moderator'}
+function isManagement(){return isAdministrator()||isModerator()}
+function canEdit(){return isAdministrator()}
 function isGuest(){return current?.role==='WWE Universe'}
 
 function openSignup(){
- openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">Enter the 6-digit Try-Out code you received from a WxRC Owner.</div><form id="codeForm">${formField('code')}<button class="btn primary full">Continue</button></form>`);
- codeForm.onsubmit=async e=>{e.preventDefault();let code=codeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {data,error}=await sb.rpc('verify_signup_code',{code_input:code});if(error||!data){alert('Incorrect Try-Out code.');return}signupDetails()};
+ openModal('Create WxRC Account',`<div class="sub" style="margin-bottom:14px">Choose the account type and enter the 6-digit registration code created by the WxRC Owner.</div><form id="codeForm"><div class="field"><label>ROLE</label><select name="role"><option value="WxRC Superstar">WxRC Superstar</option><option value="WxRC Moderator">WxRC Moderator</option><option value="WxRC Administrator">WxRC Administrator</option></select></div>${formField('code')}<button class="btn primary full">Continue</button></form>`);
+ codeForm.onsubmit=async e=>{e.preventDefault();let code=codeForm.code.value.trim(),role=codeForm.role.value;if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {data,error}=await sb.rpc('verify_role_signup_code',{role_input:role,code_input:code});if(error||!data){alert('Incorrect registration code for '+role+'.');return}signupDetails(role,code)};
 }
-function signupDetails(){
- openModal('Create WxRC Superstar Account',`<div class="sub" style="margin-bottom:14px">Your account will automatically have the WxRC Superstar role.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('email','','email')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
- signupForm.onsubmit=async e=>{e.preventDefault();let f=signupForm;let {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{username:f.username.value.trim(),display_name:f.displayName.value.trim()}}});if(error){alert(error.message);return}if(!data.session){closeModal();alert('Account created. Check your email if email confirmation is enabled, then log in.');return}await finishAuth(data.user);closeModal();enter()};
+function signupDetails(requestedRole,verifiedCode){
+ openModal('Create '+requestedRole+' Account',`<div class="sub" style="margin-bottom:14px">Requested role: <b>${esc(requestedRole)}</b>. Management roles are finalized securely by the server.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('email','','email')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
+ signupForm.onsubmit=async e=>{e.preventDefault();let f=signupForm;let {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{username:f.username.value.trim(),display_name:f.displayName.value.trim(),requested_role:requestedRole,registration_code:verifiedCode}}});if(error){alert(error.message);return}if(!data.session){closeModal();alert('Account created. Check your email if confirmation is enabled. The server will finalize the selected role after verification.');return}await finishAuth(data.user);closeModal();enter()};
 }
 async function finishAuth(user){
  let {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
@@ -243,7 +254,7 @@ function dashboard(){
 function searchCenter(){view.innerHTML=`<div class="sectionHead"><div><h2>Search</h2><div class="sub">Search Superstars and Championships.</div></div></div><div class="field"><input id="globalSearch" placeholder="Search WxRC..."></div><div id="searchResults"></div>`;globalSearch.oninput=()=>{let q=globalSearch.value.toLowerCase().trim(),ss=db.superstars.filter(x=>(x.name+' '+(x.nickname||'')+' '+(x.brand||'')).toLowerCase().includes(q)),tt=db.championships.filter(x=>(x.name+' '+(x.brand||'')).toLowerCase().includes(q));searchResults.innerHTML=!q?'':`<div class="list">${ss.map(x=>`<div class="row" onclick="profile('${x.id}')"><b>${esc(x.name)}</b><span class="badge">${esc(x.brand||'')}</span></div>`).join('')}${tt.map(x=>`<div class="row"><b>${esc(x.name)}</b><span class="badge gold">Championship</span></div>`).join('')}</div>`}}
 async function onlineActivity(action){if(!isOwner())return;await sb.from('activity_log').insert({actor_id:current.id,actor_name:current.displayName,action})}
 async function management(){
- if(!isOwner()){go('Dashboard');return}
+ if(!isManagement()){go('Dashboard');return}
  view.innerHTML=`<div class="sectionHead"><div><h2>Management</h2><div class="sub">Shared online WxRC administration.</div></div></div>
  <div class="settingsGroup"><h3>Announcements</h3><form id="annForm">${formField('title')}${formField('text')}<label><input name="pinned" type="checkbox"> Pin announcement</label><button class="btn primary full" style="margin-top:12px">Publish</button></form><div class="list">${(db.announcements||[]).map(a=>`<div class="row"><div><b>${esc(a.title)}</b><div class="sub">${esc(a.content)}</div></div><button class="btn small danger" onclick="deleteAnnouncement('${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
  <div class="settingsGroup"><h3>Awards</h3><form id="awardForm">${formField('name')}${formField('winner')}${formField('award_year',new Date().getFullYear(),'number')}${formField('notes')}<button class="btn primary full">Add Award</button></form><div class="list">${(db.awards||[]).map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="sub">${esc(a.winner||'')} · ${esc(a.award_year||'')}</div></div><button class="btn small danger" onclick="deleteShared('awards','${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
@@ -258,12 +269,26 @@ async function management(){
 async function deleteAnnouncement(id){if(!confirm('Delete this announcement?'))return;let r=await sb.from('announcements').delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted an announcement');await loadOnlineData();management()}
 async function deleteShared(table,id){if(!confirm('Delete this item?'))return;let r=await sb.from(table).delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted '+table+' item');await loadOnlineData();management()}
 function exportBackup(){const b=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),db,meta},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='WxRC-backup.json';a.click()}
-const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Shows','WWE Coins','Management','Settings'];
-const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
+function awardsPage(){view.innerHTML=`<div class="sectionHead"><div><h2>Awards</h2><div class="sub">WxRC annual and special awards.</div></div></div><div class="grid">${(db.awards||[]).map(a=>`<div class="card"><span class="badge gold">${esc(a.award_year||'AWARD')}</span><h3>${esc(a.name)}</h3><b>${esc(a.winner||'TBA')}</b><div class="sub">${esc(a.notes||'')}</div></div>`).join('')||empty()}</div>`}
+function hallOfFamePage(){view.innerHTML=`<div class="sectionHead"><div><h2>Hall of Fame</h2><div class="sub">WxRC Hall of Fame inductees.</div></div></div><div class="grid">${(db.hallOfFame||[]).map(a=>`<div class="card">${a.image?`<img src="${esc(a.image)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px">`:''}<span class="badge gold">CLASS OF ${esc(a.inducted_year||'')}</span><h3>${esc(a.name)}</h3><div class="sub">${esc(a.notes||'')}</div></div>`).join('')||empty()}</div>`}
+
+async function tryoutsPage(){
+ if(!isManagement()){go('Dashboard');return}
+ let rows=db.tryouts||[];
+ view.innerHTML=`<div class="sectionHead"><div><h2>Try-Outs</h2><div class="sub">Manage applicants and decisions.</div></div>${isAdministrator()?`<button class="btn primary" id="newTryout">+ Applicant</button>`:''}</div><div class="list">${rows.map(t=>`<div class="row"><div><b>${esc(t.applicant)}</b><div class="sub">${esc(t.tryout_date||'')} · ${esc(t.status||'Pending')} · ${esc(t.notes||'')}</div></div>${isAdministrator()?`<div class="rowActions"><button class="btn small" onclick="setTryout('${t.id}','Accepted')">Accept</button><button class="btn small danger" onclick="setTryout('${t.id}','Rejected')">Reject</button></div>`:''}</div>`).join('')||empty()}</div>`;
+ if(isAdministrator())newTryout.onclick=()=>{openModal('Add Try-Out',`<form id="tryForm">${formField('applicant')}${formField('tryoutDate',new Date().toISOString().slice(0,10),'date')}${formField('notes')}<button class="btn primary full">Add</button></form>`);tryForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('tryouts').insert({applicant:tryForm.applicant.value.trim(),tryout_date:tryForm.tryoutDate.value,notes:tryForm.notes.value.trim(),status:'Pending'});if(r.error)return alert(r.error.message);await onlineActivity('Added try-out applicant');await loadOnlineData();closeModal();tryoutsPage()}}
+}
+async function setTryout(id,status){let r=await sb.from('tryouts').update({status}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity(status+' try-out applicant');await loadOnlineData();tryoutsPage()}
+function trashPage(){
+ if(!isAdministrator()){go('Dashboard');return}
+ view.innerHTML=`<div class="sectionHead"><div><h2>Recently Deleted</h2><div class="sub">Shared management trash. Items stored here can be reviewed before permanent removal.</div></div></div><div class="list">${(db.trash||[]).map(x=>`<div class="row"><div><b>${esc(x.entity_type)}</b><div class="sub">${new Date(x.deleted_at).toLocaleString()}</div></div><button class="btn small danger" onclick="purgeTrash('${x.id}')">Delete Permanently</button></div>`).join('')||empty()}</div>`}
+async function purgeTrash(id){if(!confirm('Permanently delete this trash record?'))return;let r=await sb.from('recently_deleted').delete().eq('id',id);if(r.error)return alert(r.error.message);await loadOnlineData();trashPage()}
+const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Try-Outs','Recently Deleted','Management','Settings'];
+const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Try-Outs':'◎','Recently Deleted':'⌫','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
-function renderNav(){let allowed=nav.filter(n=>!['Settings','Management'].includes(n)||isOwner());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
+function renderNav(){let allowed=nav.filter(n=>!['Settings','Management','Try-Outs','Recently Deleted'].includes(n)||(n==='Recently Deleted'?isAdministrator():isManagement()));let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){page=n;renderNav();render()}
-function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Shows':shows,'WWE Coins':coins,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 
@@ -374,22 +399,38 @@ function editHistory(id,titleId){
 }
 function prettyDate(d){if(!d)return '—';let x=new Date(d+'T00:00:00');return x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}
 function championships(){generic('Championships','Create and manage championships.','championships',['name','brand','status','image'])}
-function shows(){generic('Shows','Manage RAW, SmackDown and community events.','shows',['name','date','time','status','venue','image'])}
+async function showControl(id){
+ let s=db.shows.find(x=>x.id===id);if(!s)return;
+ let {data:matches,error}=await sb.from('show_matches').select('*').eq('show_id',id).order('created_at');
+ if(error)matches=(db.showMatches||[]).filter(x=>x.show_id===id);
+ openModal('Show Control · '+s.name,`<div class="kv"><div><b>Status</b>${esc(s.status||'—')}</div><div><b>Date</b>${esc(s.date||'—')}</div><div><b>Venue</b>${esc(s.venue||'—')}</div></div><div class="settingsGroup"><h3>Match Card / Results</h3>${isAdministrator()?`<form id="matchForm">${formField('matchName')}${formField('participants')}${formField('result')}<label><input name="championship" type="checkbox"> Championship Match</label><button class="btn primary full" style="margin-top:10px">Add Match</button></form>`:''}${(matches||[]).map(m=>`<div class="row"><div><b>${esc(m.name)}</b><div class="sub">${esc(m.participants||'')}${m.result?' · '+esc(m.result):''}${m.championship?' · Championship':''}</div></div>${isAdministrator()?`<button class="btn small danger" onclick="deleteShowMatch('${m.id}','${id}')">Delete</button>`:''}</div>`).join('')||empty()}</div>${isAdministrator()?`<button id="finishShow" class="btn danger full">Finish Show</button>`:''}`);
+ if(isAdministrator()){
+  matchForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('show_matches').insert({show_id:id,name:matchForm.matchName.value.trim(),participants:matchForm.participants.value.trim(),result:matchForm.result.value.trim(),championship:matchForm.championship.checked});if(r.error)return alert(r.error.message);await onlineActivity('Added match to '+s.name);showControl(id)};
+  finishShow.onclick=async()=>{if(!confirm('Finish this show?'))return;let r=await sb.from('shows').update({status:'Finished'}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Finished show: '+s.name);await loadOnlineData();closeModal();shows()};
+ }
+}
+async function deleteShowMatch(mid,sid){if(!confirm('Delete this match?'))return;let r=await sb.from('show_matches').delete().eq('id',mid);if(r.error)return alert(r.error.message);showControl(sid)}
+
+function shows(){generic('Shows','Manage RAW, SmackDown and community events.','shows',['name','date','time','status','venue','image']);setTimeout(()=>{document.querySelectorAll('.row').forEach(()=>{})},0)}
 function matches(){generic('Matches','Book and track matches.','matches',['name','show','participants','stipulation','status','winner'])}
 function rivalries(){generic('Rivalries','Manage active and completed rivalries.','rivalries',['name','members','status','notes'])}
 function storylines(){generic('Storylines','Keep creative plans and storyline notes.','storylines',['name','members','status','notes'])}
 function contracts(){generic('Contracts','Manage Superstar and Staff contracts.','contracts',['name','person','value','startDate','endDate','status'])}
 function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(balances[t.person]||0)+Number(t.amount||0));view.innerHTML=`<div class="sectionHead"><div><h2>WWE Coins</h2><div class="sub">Community economy and transaction history.</div></div>${canEdit()?`<button class="btn primary" onclick="editTransaction()">+ Transaction</button>`:''}</div><div class="grid">${Object.entries(balances).map(([p,b])=>`<div class="card stat"><span class="muted">${esc(p)}</span><strong>${b}</strong><span class="badge gold">WWE COINS</span></div>`).join('')||empty()}</div><div class="sectionHead"><h3>Transactions</h3></div><div class="list">${db.transactions.slice().reverse().map(t=>`<div class="row"><div><b>${esc(t.person)}</b><div class="sub">${esc(t.note||'Transaction')} · ${esc(t.date||'')}</div></div><b>${Number(t.amount)>0?'+':''}${Number(t.amount)}</b></div>`).join('')||empty()}</div>`}
 async function settings(){
- if(!isOwner()){go('News');return}
+ if(!isManagement()){go('News');return}
  let subs=db.gimmickSubmissions||[];
  let {data:cfg}=await sb.from('app_settings').select('signup_code').eq('id',1).maybeSingle();
  let signupCode=cfg?.signup_code||'';
+ let roleCodes=[];
+ if(isOwner()){let rc=await sb.from('registration_codes').select('*').order('role');if(!rc.error)roleCodes=rc.data||[]}
  view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Online Owner / Admin management.</div></div></div>
- <div class="settingsGroup" style="border:1px solid ${unsavedChanges?'#d83b3b':'#2a303b'}"><h3>${unsavedChanges?'● Unsaved Changes':'✓ Changes Saved'}</h3><div class="sub">${unsavedChanges?'Your edits are only in this session. Save them to Supabase before logging out.':'There are no pending app changes.'}</div><button id="saveAllChangesBtn" class="btn primary full" style="margin-top:12px" ${unsavedChanges?'':'disabled'}>Save Changes</button></div>
+ <div class="settingsGroup" style="border:1px solid ${unsavedChanges?'#d83b3b':'#2a303b'}"><h3>${unsavedChanges?'● '+unsavedCount()+' Unsaved Changes':'✓ Changes Saved'}</h3><div class="sub">${unsavedChanges?'Your edits are only in this session. Save them to Supabase before logging out.':'There are no pending app changes.'}</div><button id="saveAllChangesBtn" class="btn primary full" style="margin-top:12px" ${unsavedChanges?'':'disabled'}>Save Changes</button></div>
  <div class="settingsGroup"><h3>Try-Out Sign Up Code</h3><div class="sub">Change the 6-digit code required when a new Superstar creates an account.</div><form id="signupCodeForm" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" value="${esc(signupCode)}" required></div><button class="btn primary">Change Code</button></form></div>
+ ${isOwner()?`<div class="settingsGroup"><h3>Registration Codes</h3><div class="sub">Only the WxRC Owner can view and change management registration codes.</div>${roleCodes.map(r=>`<form class="roleCodeForm" data-role="${esc(r.role)}"><div class="field"><label>${esc(r.role)}</label><input name="code" inputmode="numeric" maxlength="6" value="${esc(r.code)}"></div><button class="btn small blue">Change Code</button></form>`).join('')}</div>`:''}
  <div class="settingsGroup"><h3>Account Management</h3><div class="sub">Owner/Admin can change account roles and linked Superstars.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
  <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} · ${esc(g.reviewStatus||'Pending')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small" onclick="reviewGimmick('${g.id}','Approved')">Approve</button><button class="btn small" onclick="reviewGimmick('${g.id}','Rejected')">Reject</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
+ document.querySelectorAll('.roleCodeForm').forEach(f=>f.onsubmit=async e=>{e.preventDefault();let code=f.code.value.trim(),role=f.dataset.role;if(!/^\d{6}$/.test(code))return alert('Code must contain exactly 6 numbers.');let r=await sb.from('registration_codes').update({code,updated_at:new Date().toISOString()}).eq('role',role);if(r.error)return alert(r.error.message);toastMsg('Code updated')});
  const saveBtn=document.getElementById('saveAllChangesBtn');
  if(saveBtn)saveBtn.onclick=async()=>{saveBtn.disabled=true;saveBtn.textContent='Saving...';const ok=await commitAllChanges();if(ok){renderNav();render()}else{saveBtn.disabled=false;saveBtn.textContent='Save Changes'}};
  signupCodeForm.onsubmit=async e=>{e.preventDefault();let code=signupCodeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {error}=await sb.from('app_settings').update({signup_code:code}).eq('id',1);if(error){alert(error.message);return}toastMsg('Try-Out code changed')};
@@ -407,7 +448,7 @@ function useGimmick(id){
 }
 async function reviewGimmick(id,status){let r=await sb.from('gimmick_submissions').update({review_status:status}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity(status+' gimmick submission');await loadOnlineData();settings()}
 async function deleteGimmick(id){if(!canEdit()||!confirm('Delete this gimmick submission?'))return;let {error}=await sb.from('gimmick_submissions').delete().eq('id',id);if(error){alert(error.message);return}db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);render()}
-function normalizeRole(r){return ({'Administrator':'WxRC Owner','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
+function normalizeRole(r){return ({'Administrator':'WxRC Administrator','WxRC Admin':'WxRC Administrator','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
 function generic(title,desc,key,fields){view.innerHTML=`<div class="sectionHead"><div><h2>${title}</h2><div class="sub">${desc}</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("${key}",${JSON.stringify(fields)})'>+ Add</button>`:''}</div><div class="list">${db[key].map(o=>`<div class="row"><div class="rowMain">${o.image?`<img class="thumb" src="${esc(o.image)}">`:''}<div><b>${esc(o.name||o.person||'Item')}</b><div class="sub">${fields.filter(f=>f!=='name'&&f!=='image').map(f=>esc(o[f]||'')).filter(Boolean).join(' · ')}</div></div></div>${canEdit()?`<div class="rowActions"><button class="btn small blue" onclick='editGeneric("${key}",${JSON.stringify(fields)},"${o.id}")'>Edit</button><button class="btn small danger" onclick="del('${key}','${o.id}')">Delete</button></div>`:''}</div>`).join('')||empty()}</div>`}
 function empty(){return `<div class="empty">Nothing here yet.</div>`}
 function openModal(title,body){modalTitle.textContent=title;modalBody.innerHTML=body;modal.classList.remove('hidden')}
@@ -455,10 +496,32 @@ function editSuperstar(id=''){
 }
 async function manageSuperstar(id){
  if(!isOwner())return;let s=db.superstars.find(x=>x.id===id),m=(db.superstarManagement||[]).find(x=>x.superstar_id===id)||{};
- openModal('Manage '+s.name,`<form id="smForm"><div class="field"><label>AVAILABILITY</label><select name="availability">${['Active','Inactive','Injured','Suspended','Part-Time','Released'].map(v=>`<option ${m.availability===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="field"><label>ATTENDANCE NOTES (JSON / text)</label><textarea name="attendance">${esc(typeof m.attendance==='string'?m.attendance:JSON.stringify(m.attendance||[]))}</textarea></div><div class="field"><label>WARNINGS / STRIKES</label><textarea name="warnings">${esc(typeof m.warnings==='string'?m.warnings:JSON.stringify(m.warnings||[]))}</textarea></div><div class="field"><label>TRANSFERS</label><textarea name="transfers">${esc(typeof m.transfers==='string'?m.transfers:JSON.stringify(m.transfers||[]))}</textarea></div><button class="btn primary full">Save Management Record</button></form>`);
- smForm.onsubmit=async e=>{e.preventDefault();const parse=v=>{try{return JSON.parse(v)}catch{return [v]}};let row={superstar_id:id,availability:smForm.availability.value,attendance:parse(smForm.attendance.value),warnings:parse(smForm.warnings.value),transfers:parse(smForm.transfers.value)};let r=m.id?await sb.from('superstar_management').update(row).eq('id',m.id):await sb.from('superstar_management').insert(row);if(r.error)return alert(r.error.message);await onlineActivity('Updated management record for '+s.name);await loadOnlineData();closeModal();profile(id)}
+ const arr=v=>Array.isArray(v)?v:[];let attendance=arr(m.attendance),warnings=arr(m.warnings),transfers=arr(m.transfers),gallery=arr(m.gallery);
+ openModal('Manage '+s.name,`<form id="smForm">
+ <div class="field"><label>AVAILABILITY</label><select name="availability">${['Active','Inactive','Injured','Suspended','Part-Time','Released'].map(v=>`<option ${m.availability===v?'selected':''}>${v}</option>`).join('')}</select></div>
+ <div class="settingsGroup"><h3>Attendance</h3><div class="two">${formField('attDate',new Date().toISOString().slice(0,10),'date')}<div class="field"><label>STATUS</label><select name="attStatus"><option>Present</option><option>Absent</option><option>Excused</option></select></div></div>${attendance.slice().reverse().map(x=>`<div class="row"><b>${esc(x.date||'')}</b><span class="badge">${esc(x.status||'')}</span></div>`).join('')||empty()}<button type="button" id="addAttendance" class="btn small">+ Attendance</button></div>
+ <div class="settingsGroup"><h3>Warnings / Strikes</h3>${formField('warningReason')}<div class="two">${formField('warningDate',new Date().toISOString().slice(0,10),'date')}<div class="field"><label>TYPE</label><select name="warningType"><option>Warning</option><option>Strike</option></select></div></div>${warnings.slice().reverse().map(x=>`<div class="row"><div><b>${esc(x.type||'Warning')}</b><div class="sub">${esc(x.reason||'')} · ${esc(x.date||'')}</div></div></div>`).join('')||empty()}<button type="button" id="addWarning" class="btn small">+ Warning / Strike</button></div>
+ <div class="settingsGroup"><h3>Brand Transfer</h3><div class="two"><div class="field"><label>FROM</label><select name="fromBrand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>TO</label><select name="toBrand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div></div>${formField('transferDate',new Date().toISOString().slice(0,10),'date')}${transfers.slice().reverse().map(x=>`<div class="row"><div><b>${esc(x.from||'')} → ${esc(x.to||'')}</b><div class="sub">${esc(x.date||'')}</div></div></div>`).join('')||empty()}<button type="button" id="addTransfer" class="btn small">+ Transfer</button></div>
+ <div class="settingsGroup"><h3>Gallery</h3><div class="sub">Additional image URLs for this Superstar.</div>${formField('galleryUrl')}<button type="button" id="addGallery" class="btn small">+ Add Image</button><div class="superGrid" style="margin-top:10px">${gallery.map(url=>`<img src="${esc(url)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px">`).join('')}</div></div>
+ <button class="btn primary full">Save Management Record</button></form>`);
+ const save=async()=>{let row={superstar_id:id,availability:smForm.availability.value,attendance,warnings,transfers,gallery};let r=m.id?await sb.from('superstar_management').update(row).eq('id',m.id):await sb.from('superstar_management').insert(row);if(r.error){alert(r.error.message);return false}if(!m.id){await loadOnlineData();m=(db.superstarManagement||[]).find(x=>x.superstar_id===id)||m}return true};
+ addAttendance.onclick=async()=>{attendance.push({date:smForm.attDate.value,status:smForm.attStatus.value});if(await save())manageSuperstar(id)};
+ addWarning.onclick=async()=>{if(!smForm.warningReason.value.trim())return;warnings.push({date:smForm.warningDate.value,type:smForm.warningType.value,reason:smForm.warningReason.value.trim()});if(await save())manageSuperstar(id)};
+ addTransfer.onclick=async()=>{let from=smForm.fromBrand.value,to=smForm.toBrand.value;transfers.push({date:smForm.transferDate.value,from,to});if(await save()){let r=await sb.from('superstars').update({brand:to}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Transferred '+s.name+' from '+from+' to '+to);await loadOnlineData();manageSuperstar(id)}};
+ addGallery.onclick=async()=>{let u=smForm.galleryUrl.value.trim();if(u){gallery.push(u);if(await save())manageSuperstar(id)}};
+ smForm.onsubmit=async e=>{e.preventDefault();if(await save()){await onlineActivity('Updated management record for '+s.name);await loadOnlineData();closeModal();profile(id)}};
 }
+
 function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<button class="btn small blue" style="margin-top:10px" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
+async function vacateChampionship(titleId){
+ if(!canEdit()||!confirm('Vacate this championship? The current reign will be archived.'))return;
+ let c=db.champions.find(x=>x.titleId===titleId);if(!c)return;
+ let st=db.superstars.find(x=>x.id===c.superstarId);
+ let hist={superstar_id:c.superstarId,superstar_name:st?.name||'',title_id:c.titleId,date_won:c.dateWon,date_lost:new Date().toISOString().slice(0,10),image:c.image||null,notes:'Championship vacated'};
+ let a=await sb.from('champion_history').insert(hist);if(a.error)return alert(a.error.message);
+ let d=await sb.from('champions').delete().eq('id',c.id);if(d.error)return alert(d.error.message);
+ await sb.from('championships').update({status:'VACANT'}).eq('id',titleId);await onlineActivity('Vacated championship');await loadOnlineData();render();
+}
 async function deleteChampion(id){
  const c=db.champions.find(x=>x.id===id); if(!c)return;
  const st=db.superstars.find(x=>x.id===c.superstarId);
