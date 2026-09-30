@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.3</title>
+<title>WWE x Roblox Community Online v5.3.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -88,7 +88,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
 const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],tryouts:[],trash:[],permissions:[]}, current=null, page='News';
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],tryouts:[],trash:[],permissions:[],appSettings:null}, current=null, page='News';
 let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];function unsavedCount(){return pendingChanges.length+pendingDeletes.length}
 function markUnsaved(table=null,id=null,kind=null){
  unsavedChanges=true;
@@ -149,12 +149,13 @@ async function loadOnlineData(){
    sb.from('profiles').select('*'),
    sb.from('transactions').select('*').order('created_at'),
    sb.from('gimmick_submissions').select('*').order('created_at'),
-   sb.from('activity_log').select('*').order('created_at',{ascending:false}),
+   sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(100),
    sb.from('superstar_management').select('*'),
    sb.from('show_matches').select('*').order('created_at'),
    sb.from('tryouts').select('*').order('created_at',{ascending:false}),
-   sb.from('recently_deleted').select('*').order('deleted_at',{ascending:false}),
-   sb.from('admin_permissions').select('*')
+   sb.from('recently_deleted').select('*').order('deleted_at',{ascending:false}).limit(100),
+   sb.from('admin_permissions').select('*'),
+   sb.from('app_settings').select('*').eq('id',1).maybeSingle()
   ]);
   const vals=extra.map(x=>x.status==='fulfilled'?x.value:null);
   if(vals[0]&&!vals[0].error)db.users=mapRows(vals[0].data,'profiles');
@@ -166,6 +167,7 @@ async function loadOnlineData(){
   if(vals[6]&&!vals[6].error)db.tryouts=vals[6].data||[];
   if(vals[7]&&!vals[7].error)db.trash=vals[7].data||[];
   if(vals[8]&&!vals[8].error)db.permissions=vals[8].data||[];
+  if(vals[9]&&!vals[9].error)db.appSettings=vals[9].data||null;
  }
  return results;
 }
@@ -228,7 +230,6 @@ async function finishAuth(user){
  if(error){console.error('Profile load:',error);alert('Your account signed in, but the WxRC profile could not be loaded: '+error.message);return false}
  if(!p){alert('Your login exists, but no WxRC profile is linked to it. Contact a WxRC Owner.');return false}
  current={id:p.id,username:p.username||'',displayName:p.display_name||'User',role:p.role||'WxRC Superstar',superstarId:p.superstar_id||''};
- try{await loadOnlineData()}catch(e){console.error('Data load:',e)}
  return true;
 }
 async function login(){
@@ -237,7 +238,7 @@ async function login(){
   let {data,error}=await sb.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});
   if(error){loginError.textContent=error.message;return}
   if(!data?.user){loginError.textContent='Login failed: no user returned.';return}
-  if(await finishAuth(data.user)){loginError.textContent='';enter()}
+  if(await finishAuth(data.user)){loginError.textContent='';enter();loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.error('Background data load:',e))}
  }catch(e){console.error(e);loginError.textContent='Login error: '+(e?.message||e)}
 }
 async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};enter();try{await loadOnlineData();renderNav();render()}catch(e){console.error(e)}}
@@ -287,7 +288,13 @@ const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick',
 const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Try-Outs':'◎','Recently Deleted':'⌫','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
 function renderNav(){let allowed=nav.filter(n=>!['Settings','Management','Try-Outs','Recently Deleted'].includes(n)||(n==='Recently Deleted'?isAdministrator():isManagement()));let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
-function go(n){page=n;renderNav();render()}
+function go(n){
+ if(page===n)return;
+ page=n;
+ pageTitle.textContent=n;
+ view.innerHTML='<div class="card"><div class="sub">Loading…</div></div>';
+ requestAnimationFrame(()=>{renderNav();render()});
+}
 function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
@@ -420,7 +427,7 @@ function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(
 async function settings(){
  if(!isManagement()){go('News');return}
  let subs=db.gimmickSubmissions||[];
- let {data:cfg}=await sb.from('app_settings').select('signup_code').eq('id',1).maybeSingle();
+ let cfg=db.appSettings;
  let signupCode=cfg?.signup_code||'';
  let roleCodes=[];
  if(isOwner()){let rc=await sb.from('registration_codes').select('*').order('role');if(!rc.error)roleCodes=rc.data||[]}
