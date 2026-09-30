@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.3.5</title>
+<title>WWE x Roblox Community Online v5.3.7</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -414,7 +414,7 @@ function reignTime(start,end){
  if(d<1)return '<1 DAY';
  return `${d} ${d===1?'DAY':'DAYS'}`;
 }
-function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CHAMPION</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignTime(c.dateWon)}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" data-vacate-title="${t.id}" onclick="event.stopPropagation();vacateChampionship('${t.id}')">VACATE CHAMPIONSHIP</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
+function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge ${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'red':'gold'}">${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'VACANT CHAMPIONSHIP':'CHAMPION'}</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignTime(c.dateWon)}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" data-vacate-title="${t.id}" onclick="event.stopPropagation();vacateChampionship('${t.id}')">VACATE CHAMPIONSHIP</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
 function champions(){view.innerHTML=`<div class="sectionHead"><div><h2>Champions</h2><div class="sub">Current title holders. Tap a champion to see the full title history.</div></div>${canEdit()?`<button class="btn primary" onclick="editChampion()">+ Set New Champion</button>`:''}</div>${champList()}`}
 function backToChampions(){
  page='Champions';
@@ -446,14 +446,19 @@ function championshipHistory(titleId){
 }
 function deleteHistory(id,titleId){
  const x=(db.championHistory||[]).find(h=>h.id===id);if(!x)return;
- if(!confirm('Delete this championship history entry permanently?'))return;
+ if(!confirm('Delete this championship history entry? It will be removed after Save Changes.'))return;
  db.championHistory=(db.championHistory||[]).filter(h=>h.id!==id);
- save();championshipHistory(titleId);toastMsg('History deleted');
+ pendingChanges=pendingChanges.filter(c=>!(c.table==='champion_history'&&c.id===id));
+ if(!pendingDeletes.some(d=>d.table==='champion_history'&&d.id===id))pendingDeletes.push({table:'champion_history',id});
+ unsavedChanges=true;
+ saveDataCache();
+ championshipHistory(titleId);
+ toastMsg('History deletion queued — go to Settings to save');
 }
 function editHistory(id,titleId){
  const h=(db.championHistory||[]).find(x=>x.id===id); if(!h)return;
  openModal('Edit Championship History',`<form id="hform">${formField('dateWon',h.dateWon||'')}${formField('dateLost',h.dateLost||'')}${formField('notes',h.notes||'')}<div class="sub" style="margin:-5px 0 14px">Add opponent, PPV/event, location or any other reign information.</div><button class="btn primary full">Save History</button></form>`);
- hform.onsubmit=e=>{e.preventDefault();h.dateWon=hform.dateWon.value;h.dateLost=hform.dateLost.value;h.notes=hform.notes.value.trim();save();closeModal();championshipHistory(titleId);toastMsg('History updated')};
+ hform.onsubmit=e=>{e.preventDefault();h.dateWon=hform.dateWon.value;h.dateLost=hform.dateLost.value;h.notes=hform.notes.value.trim();markUnsaved('champion_history',h.id,'edit');saveDataCache();closeModal();championshipHistory(titleId);toastMsg('History updated — go to Settings to save')};
 }
 function prettyDate(d){if(!d)return '—';let x=new Date(d+'T00:00:00');return x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}
 function championships(){generic('Championships','Create and manage championships.','championships',['name','brand','status','image'])}
@@ -572,13 +577,47 @@ async function manageSuperstar(id){
 
 function profile(id){let s=db.superstars.find(x=>x.id===id);openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<button class="btn small blue" style="margin-top:10px" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>`)}
 async function vacateChampionship(titleId){
- if(!canEdit()||!confirm('Vacate this championship? The current reign will be archived.'))return;
- let c=db.champions.find(x=>x.titleId===titleId);if(!c)return;
- let st=db.superstars.find(x=>x.id===c.superstarId);
- let hist={superstar_id:c.superstarId,superstar_name:st?.name||'',title_id:c.titleId,date_won:c.dateWon,date_lost:new Date().toISOString().slice(0,10),image:c.image||null,notes:'Championship vacated'};
- let a=await sb.from('champion_history').insert(hist);if(a.error)return alert(a.error.message);
- let d=await sb.from('champions').delete().eq('id',c.id);if(d.error)return alert(d.error.message);
- await sb.from('championships').update({status:'VACANT'}).eq('id',titleId);await onlineActivity('Vacated championship');await loadOnlineData();render();
+ if(!canEdit()||!confirm('Vacate this championship? The current reign will be archived and the VACANT CHAMPIONSHIP Superstar will become the holder.'))return;
+ const c=db.champions.find(x=>x.titleId===titleId);if(!c)return;
+ const title=db.championships.find(x=>x.id===titleId);if(!title)return alert('Championship not found.');
+ const currentStar=db.superstars.find(x=>x.id===c.superstarId);
+ const isWomens=/women[’']?s/i.test(title.name||'');
+ const vacantType=isWomens?'Woman':'Man';
+ const vacantStar=db.superstars.find(s=>
+   String(s.name||'').trim().toUpperCase()==='VACANT CHAMPIONSHIP' &&
+   String(s.nickname||'').trim().toLowerCase()===vacantType.toLowerCase()
+ );
+ if(!vacantStar)return alert(`Create a Superstar named "VACANT CHAMPIONSHIP" with Nickname "${vacantType}" first.`);
+
+ const today=new Date().toISOString().slice(0,10);
+ const hist={
+   superstar_id:c.superstarId,
+   superstar_name:currentStar?.name||'',
+   title_id:c.titleId,
+   date_won:c.dateWon,
+   date_lost:today,
+   image:c.image||currentStar?.image||null,
+   notes:[c.notes,'Championship vacated'].filter(Boolean).join(' · ')
+ };
+ const archived=await sb.from('champion_history').insert(hist);
+ if(archived.error)return alert(archived.error.message);
+
+ const vacantRow={
+   superstar_id:vacantStar.id,
+   title_id:titleId,
+   date_won:today,
+   notes:'VACANT CHAMPIONSHIP',
+   image:vacantStar.image||null
+ };
+ const replaced=await sb.from('champions').update(vacantRow).eq('id',c.id);
+ if(replaced.error)return alert(replaced.error.message);
+
+ await sb.from('championships').update({status:'VACANT'}).eq('id',titleId);
+ await onlineActivity(`Vacated ${title.name} → VACANT CHAMPIONSHIP (${vacantType})`);
+ await loadOnlineData();
+ page='Champions';
+ renderNav();
+ champions();
 }
 async function deleteChampion(id){
  const c=db.champions.find(x=>x.id===id); if(!c)return;
