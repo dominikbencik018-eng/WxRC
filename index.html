@@ -75,7 +75,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
  <div id="sideNav" class="nav"></div>
 </aside>
 <main class="content">
- <div class="top"><div><h2 id="pageTitle">Home</h2><div class="sub">WWE x Roblox Community</div></div><div class="userchip"><div id="userAvatar" class="avatar">G</div><div><b id="userName">Guest</b><div id="userRole" class="sub">WWE Universe</div></div><button class="btn small ghost" onclick="refreshApp()">↻ Refresh</button><button class="btn small ghost" onclick="logout()">Log out</button></div></div>
+ <div class="top"><div><h2 id="pageTitle">Home</h2><div class="sub">WWE x Roblox Community</div></div><div class="userchip"><div id="userAvatar" class="avatar">G</div><div><b id="userName">Guest</b><div id="userRole" class="sub">WWE Universe</div></div><button class="btn small ghost" onclick="refreshApp()">↻ Refresh</button><button id="authTopBtn" class="btn small ghost" onclick="openLoginScreen()">Log In</button></div></div>
  <div id="view"></div>
 </main>
 </div>
@@ -288,7 +288,8 @@ async function guestLogin(){
  else toastMsg('Guest mode · offline/cached data');
 }
 function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
-async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;if(initSupabase())try{await sb.auth.signOut()}catch(e){} current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
+function openLoginScreen(){document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginError.textContent='';loginPass.value=''}
+async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;if(initSupabase())try{await sb.auth.signOut()}catch(e){} current={id:'guest',displayName:'Guest',role:'WWE Universe'};loadDataCache();enter();if(initSupabase())loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.warn('Guest online refresh unavailable',e))}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
 const WXRC_META_KEY='wxrcMetaV5';
 let meta=JSON.parse(localStorage.getItem(WXRC_META_KEY)||'{"announcements":[],"activity":[],"maintenance":false,"maintenanceMessage":"WxRC is currently under maintenance."}');
@@ -356,7 +357,7 @@ function go(n){
  view.innerHTML='<div class="card"><div class="sub">Loading…</div></div>';
  requestAnimationFrame(()=>{renderNav();render()});
 }
-function render(){pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){if(!current)current={id:'guest',displayName:'Guest',role:'WWE Universe'};pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();authTopBtn.textContent=isGuest()?'Log In':'Log Out';authTopBtn.onclick=isGuest()?openLoginScreen:logout;const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 
@@ -652,6 +653,16 @@ function removeCareerHighlight(superstarId,highlightId){
  db.careerHighlights=(db.careerHighlights||[]).filter(x=>x.id!==highlightId);saveCareerHighlightsLocal();profile(superstarId);toastMsg('Career Highlight removed')
 }
 function profile(id){let s=db.superstars.find(x=>x.id===id);if(!s)return;openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<button class="btn small blue" style="margin-top:10px" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>${careerHighlightsHTML(s)}`)}
+
+// Open the public site directly in News as WWE Universe; login is optional from the top-right button.
+window.addEventListener('load',()=>{
+ if(!current){
+  current={id:'guest',displayName:'Guest',role:'WWE Universe'};
+  loadDataCache();
+  enter();
+  if(initSupabase()) loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.warn('Public News refresh unavailable',e));
+ }
+});
 </script>
 </body>
 </html>
