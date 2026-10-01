@@ -95,7 +95,7 @@ function initSupabase(){
  }catch(e){console.error('Supabase init failed',e);return false}
 }
 initSupabase();
-let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],tryouts:[],trash:[],permissions:[],careerHighlights:[],appSettings:null}, current=null, page='News';
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],permissions:[],careerHighlights:[],appSettings:null}, current=null, page='News';
 let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];function unsavedCount(){return pendingChanges.length+pendingDeletes.length}
 function markUnsaved(table=null,id=null,kind=null){
  unsavedChanges=true;
@@ -134,7 +134,6 @@ async function loadOnlineData(){
   ['hall_of_fame','hallOfFame','created_at'],
   ['superstar_achievements','achievements','created_at'],
   ['superstar_injuries','injuries','created_at'],
-  ['superstar_timeline','timeline','created_at'],
   ['superstar_career_highlights','careerHighlights','created_at']
  ];
  const results=await Promise.all(specs.map(async ([table,kind,order])=>{
@@ -157,7 +156,6 @@ async function loadOnlineData(){
   else if(r.table==='hall_of_fame')db.hallOfFame=r.data||[];
   else if(r.table==='superstar_achievements')ext.achievements=(r.data||[]).map(x=>({id:x.id,superstarId:x.superstar_id,name:x.name||'',count:Number(x.reign_count||1),date:x.achievement_date||''}));
   else if(r.table==='superstar_injuries')ext.injuries=(r.data||[]).map(x=>({id:x.id,superstarId:x.superstar_id,reason:x.reason||'',from:x.out_since||'',expected:x.expected_return||'',returned:x.returned_on||''}));
-  else if(r.table==='superstar_timeline')ext.timeline=(r.data||[]).map(x=>({id:x.id,superstarId:x.superstar_id,type:x.event_type||'',text:x.event_text||'',date:x.event_date||''}));
   else if(r.table==='superstar_career_highlights')db.careerHighlights=(r.data||[]).map(x=>({id:x.id,superstar_id:x.superstar_id,title_id:x.title_id||'',name:x.name||'',reign_count:Number(x.reign_count||1),hidden:!!x.hidden}));
  }
  if(current && isManagement()){
@@ -168,8 +166,6 @@ async function loadOnlineData(){
    sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(100),
    sb.from('superstar_management').select('*'),
    sb.from('show_matches').select('*').order('created_at'),
-   sb.from('tryouts').select('*').order('created_at',{ascending:false}),
-   sb.from('recently_deleted').select('*').order('deleted_at',{ascending:false}).limit(100),
    sb.from('admin_permissions').select('*'),
    sb.from('app_settings').select('*').eq('id',1).maybeSingle()
   ]);
@@ -180,10 +176,8 @@ async function loadOnlineData(){
   if(vals[3]&&!vals[3].error)db.activityLog=vals[3].data||[];
   if(vals[4]&&!vals[4].error)db.superstarManagement=vals[4].data||[];
   if(vals[5]&&!vals[5].error)db.showMatches=vals[5].data||[];
-  if(vals[6]&&!vals[6].error)db.tryouts=vals[6].data||[];
-  if(vals[7]&&!vals[7].error)db.trash=vals[7].data||[];
-  if(vals[8]&&!vals[8].error)db.permissions=vals[8].data||[];
-  if(vals[9]&&!vals[9].error)db.appSettings=vals[9].data||null;
+  if(vals[6]&&!vals[6].error)db.permissions=vals[6].data||[];
+  if(vals[7]&&!vals[7].error)db.appSettings=vals[7].data||null;
  }
  saveDataCache();
  setTimeout(()=>notifyNewPublicContent(),50);
@@ -255,7 +249,7 @@ function saveDataCache(){
    announcements:db.announcements,awards:db.awards,hallOfFame:db.hallOfFame,
    users:db.users,transactions:db.transactions,gimmickSubmissions:db.gimmickSubmissions,
    activityLog:db.activityLog,superstarManagement:db.superstarManagement,
-   showMatches:db.showMatches,tryouts:db.tryouts,trash:db.trash,
+   showMatches:db.showMatches,
    permissions:db.permissions,careerHighlights:db.careerHighlights,appSettings:db.appSettings
   }));
  }catch(e){console.warn('WxRC cache save failed',e)}
@@ -265,7 +259,7 @@ function loadDataCache(){
   const c=JSON.parse(localStorage.getItem(WXRC_DATA_CACHE)||'null');
   if(!c)return false;
   ['superstars','championships','champions','championHistory','shows','news','announcements','awards','hallOfFame',
-   'users','transactions','gimmickSubmissions','activityLog','superstarManagement','showMatches','tryouts','trash','permissions','careerHighlights'
+   'users','transactions','gimmickSubmissions','activityLog','superstarManagement','showMatches','permissions','careerHighlights'
   ].forEach(k=>{if(Array.isArray(c[k]))db[k]=c[k]});
   if(c.appSettings)db.appSettings=c.appSettings;
   return true;
@@ -330,35 +324,10 @@ function awardsPage(){
 function hallOfFamePage(){
  view.innerHTML=`<div class="sectionHead"><div><h2>Hall of Fame</h2><div class="sub">WxRC Hall of Fame inductees.</div></div></div><div class="superGrid">${(db.hallOfFame||[]).map(a=>`<div class="superCard">${a.image?`<img src="${esc(a.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">★</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CLASS OF ${esc(a.inducted_year||'')}</span><h3>${esc(a.name)}</h3><div class="sub">${esc(a.notes||'')}</div></div></div>`).join('')||empty()}</div>`}
 
-async function tryoutsPage(){
- if(!isManagement()){go('Dashboard');return}
- let rows=(db.tryouts||[]).filter(t=>String(t.status||'Pending').toLowerCase()==='pending');
- view.innerHTML=`<div class="sectionHead"><div><h2>Try-Outs</h2><div class="sub">Manage applicants and decisions.</div></div>${isAdministrator()?`<button class="btn primary" id="newTryout">+ Applicant</button>`:''}</div><div class="list">${rows.map(t=>`<div class="row"><div><b>${esc(t.applicant)}</b><div class="sub">${esc(t.tryout_date||'')} · ${esc(t.status||'Pending')} · ${esc(t.notes||'')}</div></div>${isAdministrator()?`<div class="rowActions"><button class="btn small" onclick="setTryout('${t.id}','Accepted')">Accept</button><button class="btn small danger" onclick="setTryout('${t.id}','Rejected')">Reject</button></div>`:''}</div>`).join('')||empty()}</div>`;
- if(isAdministrator())newTryout.onclick=()=>{openModal('Add Try-Out',`<form id="tryForm">${formField('applicant')}${formField('tryoutDate',new Date().toISOString().slice(0,10),'date')}${formField('notes')}<button class="btn primary full">Add</button></form>`);tryForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('tryouts').insert({applicant:tryForm.applicant.value.trim(),tryout_date:tryForm.tryoutDate.value,notes:tryForm.notes.value.trim(),status:'Pending'});if(r.error)return alert(r.error.message);await onlineActivity('Added try-out applicant');await loadOnlineData();closeModal();tryoutsPage()}}
-}
-async function setTryout(id,status){
- if(!isAdministrator())return;
- const item=(db.tryouts||[]).find(t=>t.id===id);
- if(!item)return alert('Try-Out applicant not found.');
- const label=status==='Accepted'?'accept':'reject';
- if(!confirm(`Are you sure you want to ${label} ${item.applicant}? This will remove the applicant from Try-Outs.`))return;
- const r=await sb.from('tryouts').delete().eq('id',id);
- if(r.error)return alert('Try-Out could not be removed: '+r.error.message);
- db.tryouts=(db.tryouts||[]).filter(t=>t.id!==id);
- saveDataCache();
- await onlineActivity(`${status} try-out applicant: ${item.applicant}`);
- tryoutsPage();
- toastMsg(`${item.applicant} ${status.toLowerCase()} and removed from Try-Outs`);
- loadOnlineData().catch(e=>console.error('Try-Out refresh:',e));
-}
-function trashPage(){
- if(!isAdministrator()){go('Dashboard');return}
- view.innerHTML=`<div class="sectionHead"><div><h2>Recently Deleted</h2><div class="sub">Shared management trash. Items stored here can be reviewed before permanent removal.</div></div></div><div class="list">${(db.trash||[]).map(x=>`<div class="row"><div><b>${esc(x.entity_type)}</b><div class="sub">${new Date(x.deleted_at).toLocaleString()}</div></div><button class="btn small danger" onclick="purgeTrash('${x.id}')">Delete Permanently</button></div>`).join('')||empty()}</div>`}
-async function purgeTrash(id){if(!confirm('Permanently delete this trash record?'))return;let r=await sb.from('recently_deleted').delete().eq('id',id);if(r.error)return alert(r.error.message);await loadOnlineData();trashPage()}
-const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Try-Outs','Recently Deleted','Management','Settings'];
-const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Try-Outs':'◎','Recently Deleted':'⌫','Settings':'⚙'};
+const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Management','Settings'];
+const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
-function renderNav(){let allowed=nav.filter(n=>!['Settings','Management','Try-Outs','Recently Deleted'].includes(n)||(n==='Recently Deleted'?isAdministrator():isManagement()));let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
+function renderNav(){let allowed=nav.filter(n=>!['Settings','Management'].includes(n)||isManagement());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){
  if(page===n)return;
  page=n;
@@ -366,7 +335,7 @@ function go(n){
  view.innerHTML='<div class="card"><div class="sub">Loading…</div></div>';
  requestAnimationFrame(()=>{renderNav();render()});
 }
-function render(){if(!current)current={id:'guest',displayName:'Guest',role:'WWE Universe'};pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();authTopBtn.textContent=isGuest()?'Log In':'Log Out';authTopBtn.onclick=isGuest()?openLoginScreen:logout;const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Try-Outs':tryoutsPage,'Recently Deleted':trashPage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){if(!current)current={id:'guest',displayName:'Guest',role:'WWE Universe'};pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();authTopBtn.textContent=isGuest()?'Log In':'Log Out';authTopBtn.onclick=isGuest()?openLoginScreen:logout;const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 
@@ -612,36 +581,29 @@ async function manageSuperstar(id){
  smForm.onsubmit=async e=>{e.preventDefault();if(await save()){await onlineActivity('Updated management record for '+s.name);await loadOnlineData();closeModal();profile(id)}};
 }
 
-// WxRC extended features: achievements, injuries, timeline and member notifications.
+// WxRC extended features: achievements, injuries and member notifications.
 const WXRC_EXT_KEY='wxrcExtendedFeaturesV1';
-let ext={achievements:[],injuries:[],timeline:[],seenNews:[],seenActivity:[]};
+let ext={achievements:[],injuries:[],seenNews:[],seenActivity:[]};
 function loadExt(){try{const x=JSON.parse(localStorage.getItem(WXRC_EXT_KEY)||'{}');ext={...ext,...x}}catch(e){}}
 function saveExt(){localStorage.setItem(WXRC_EXT_KEY,JSON.stringify(ext))}
 loadExt();
 function superstarName(id){return db.superstars.find(s=>s.id===id)?.name||'Superstar'}
-async function addTimeline(superstarId,type,text,date=''){
- const item={id:uid('tl'),superstarId,type,text,date:date||new Date().toISOString().slice(0,10)}; ext.timeline.push(item);saveExt();
- if(initSupabase()){const r=await sb.from('superstar_timeline').insert({id:item.id,superstar_id:superstarId,event_type:type,event_text:text,event_date:item.date});if(r.error)console.error('timeline sync',r.error)}
-}
-function timelineFor(id){return (ext.timeline||[]).filter(x=>x.superstarId===id).sort((a,b)=>(b.date||'').localeCompare(a.date||''))}
 function achievementFor(id){return (ext.achievements||[]).filter(x=>x.superstarId===id)}
 function injuryFor(id){return (ext.injuries||[]).filter(x=>x.superstarId===id).sort((a,b)=>(b.from||'').localeCompare(a.from||''))}
 function achievementHighlightsFor(id){return achievementFor(id).map(x=>({name:x.name,count:Math.max(1,Number(x.count||1)),achievement:true,id:x.id}))}
 function addAchievement(superstarId){
  const presets=['Money in the Bank Winner','Royal Rumble Winner','King of the Ring Winner','Queen of the Ring Winner','Elimination Chamber Winner','WrestleMania Main Event','Hall of Fame'];
  openModal('Add Achievement',`<form id="achForm"><div class="field"><label>ACHIEVEMENT</label><select name="preset"><option value="">Custom...</option>${presets.map(x=>`<option>${esc(x)}</option>`).join('')}</select></div><div class="field"><label>CUSTOM NAME</label><input name="custom" placeholder="e.g. Money in the Bank Winner"></div><div class="field"><label>COUNT</label><input name="count" type="number" min="1" value="1"></div><div class="field"><label>DATE / YEAR</label><input name="date" placeholder="2027 or 2027-04-03"></div><button class="btn primary full">Add Achievement</button></form>`);
- achForm.onsubmit=async e=>{e.preventDefault();const name=achForm.custom.value.trim()||achForm.preset.value;if(!name)return alert('Choose or enter an achievement.');const count=Math.max(1,Number(achForm.count.value||1));const item={id:uid('ach'),superstarId,name,count,date:achForm.date.value.trim()};ext.achievements.push(item);saveExt();if(initSupabase()){const r=await sb.from('superstar_achievements').insert({id:item.id,superstar_id:superstarId,name,reign_count:count,achievement_date:item.date||null});if(r.error)return alert('Supabase: '+r.error.message)}await addTimeline(superstarId,'Achievement',`${name}${count>1?' (x'+count+')':''}`,item.date);closeModal();profile(superstarId);toastMsg('Achievement saved online')}
+ achForm.onsubmit=async e=>{e.preventDefault();const name=achForm.custom.value.trim()||achForm.preset.value;if(!name)return alert('Choose or enter an achievement.');const count=Math.max(1,Number(achForm.count.value||1));const item={id:uid('ach'),superstarId,name,count,date:achForm.date.value.trim()};if(!initSupabase())return alert('Supabase is not connected.');const r=await sb.from('superstar_achievements').insert({id:item.id,superstar_id:superstarId,name,reign_count:count,achievement_date:item.date||null});if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();closeModal();profile(superstarId);toastMsg('Achievement saved online')}
 }
 async function removeAchievement(superstarId,id){if(!confirm('Remove this achievement?'))return;if(initSupabase()){const r=await sb.from('superstar_achievements').delete().eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}ext.achievements=ext.achievements.filter(x=>x.id!==id);saveExt();profile(superstarId)}
 function manageInjuries(superstarId){
  const s=db.superstars.find(x=>x.id===superstarId);if(!s)return;const rows=injuryFor(superstarId);
  openModal('Injuries · '+s.name,`<form id="injForm"><div class="field"><label>INJURY / REASON</label><input name="reason" required></div><div class="two"><div class="field"><label>OUT SINCE</label><input name="from" type="date" required></div><div class="field"><label>EXPECTED RETURN</label><input name="expected" type="date"></div></div><button class="btn primary full">Add Injury</button></form><div class="settingsGroup"><h3>Injury History</h3>${rows.map(x=>`<div class="row"><div><b>${esc(x.reason)}</b><div class="sub">${esc(x.from)}${x.expected?' · Expected '+esc(x.expected):''}${x.returned?' · Returned '+esc(x.returned):' · ACTIVE'}</div></div><div class="rowActions">${!x.returned?`<button class="btn small blue" onclick="returnFromInjury('${superstarId}','${x.id}')">Returned</button>`:''}<button class="btn small danger" onclick="deleteInjury('${superstarId}','${x.id}')">Delete</button></div></div>`).join('')||empty()}</div>`);
- injForm.onsubmit=async e=>{e.preventDefault();const item={id:uid('inj'),superstarId,reason:injForm.reason.value.trim(),from:injForm.from.value,expected:injForm.expected.value,returned:''};ext.injuries.push(item);saveExt();if(initSupabase()){const r=await sb.from('superstar_injuries').insert({id:item.id,superstar_id:superstarId,reason:item.reason,out_since:item.from,expected_return:item.expected||null});if(r.error)return alert('Supabase: '+r.error.message)}await addTimeline(superstarId,'Injury','Injured: '+item.reason,item.from);closeModal();manageInjuries(superstarId);toastMsg('Injury saved online')}
+ injForm.onsubmit=async e=>{e.preventDefault();const item={id:uid('inj'),superstarId,reason:injForm.reason.value.trim(),from:injForm.from.value,expected:injForm.expected.value,returned:''};ext.injuries.push(item);saveExt();if(initSupabase()){const r=await sb.from('superstar_injuries').insert({id:item.id,superstar_id:superstarId,reason:item.reason,out_since:item.from,expected_return:item.expected||null});if(r.error)return alert('Supabase: '+r.error.message)}closeModal();manageInjuries(superstarId);toastMsg('Injury saved online')}
 }
-async function returnFromInjury(superstarId,id){const x=ext.injuries.find(v=>v.id===id);if(!x)return;x.returned=new Date().toISOString().slice(0,10);if(initSupabase()){const r=await sb.from('superstar_injuries').update({returned_on:x.returned}).eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}saveExt();await addTimeline(superstarId,'Return','Returned from injury: '+x.reason,x.returned);manageInjuries(superstarId)}
+async function returnFromInjury(superstarId,id){const x=ext.injuries.find(v=>v.id===id);if(!x)return;x.returned=new Date().toISOString().slice(0,10);if(initSupabase()){const r=await sb.from('superstar_injuries').update({returned_on:x.returned}).eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}saveExt();manageInjuries(superstarId)}
 async function deleteInjury(superstarId,id){if(!confirm('Delete this injury record?'))return;if(initSupabase()){const r=await sb.from('superstar_injuries').delete().eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}ext.injuries=ext.injuries.filter(x=>x.id!==id);saveExt();manageInjuries(superstarId)}
-function timelineHTML(s){const rows=timelineFor(s.id);return `<div style="border-top:1px solid #42484b;margin-top:28px;padding-top:24px"><div style="font-size:20px;margin-bottom:12px">Superstar Timeline</div>${rows.map(x=>`<div class="row" style="margin-bottom:8px"><div><span class="badge">${esc(x.type)}</span> <b>${esc(x.text)}</b><div class="sub">${esc(x.date||'')}</div></div>${canEdit()?`<button class="btn small danger" onclick="deleteTimeline('${s.id}','${x.id}')">Delete</button>`:''}</div>`).join('')||`<div class="sub">No timeline events yet.</div>`}</div>`}
-async function deleteTimeline(sid,id){if(!confirm('Delete this timeline event?'))return;if(initSupabase()){const r=await sb.from('superstar_timeline').delete().eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}ext.timeline=ext.timeline.filter(x=>x.id!==id);saveExt();profile(sid)}
 function championshipDetail(id){
  const t=db.championships.find(x=>x.id===id);if(!t)return;const c=db.champions.find(x=>x.titleId===id),cs=c?db.superstars.find(x=>x.id===c.superstarId):null;const hist=(db.championHistory||[]).filter(x=>x.titleId===id);const all=[...hist.map(h=>({name:h.superstarName||superstarName(h.superstarId),from:h.dateWon,to:h.dateLost})),...(c?[{name:cs?.name||'Unknown',from:c.dateWon,to:'Present'}]:[])];
  openModal(t.name,`${t.image?`<img src="${esc(t.image)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:16px;margin-bottom:14px">`:''}<span class="badge gold">${esc(t.brand||'CHAMPIONSHIP')}</span><h2 style="margin:10px 0">${esc(t.name)}</h2><div class="kv"><div><b>Current Champion</b>${esc(cs?.name||'Vacant')}</div><div><b>Status</b>${esc(t.status||'Active')}</div><div><b>Recorded Reigns</b>${all.length}</div><div><b>Current Reign</b>${c?esc(reignTime(c.dateWon)):'—'}</div></div><div class="settingsGroup"><h3>Title History</h3>${all.slice().reverse().map(x=>`<div class="row"><div><b>${esc(x.name)}</b><div class="sub">${esc(x.from||'—')} — ${esc(x.to||'Present')}</div></div></div>`).join('')||empty()}</div><button class="btn full" onclick="closeModal();championshipHistory('${id}')">Open Full Championship History</button>`)
@@ -652,31 +614,19 @@ function openActivityFeed(){const acts=(db.activityLog||[]).slice(0,30);openModa
 function notifyNewPublicContent(){if(!('Notification' in window)||Notification.permission!=='granted')return;const seen=new Set(ext.seenNews||[]);const fresh=(db.news||[]).filter(n=>!seen.has(n.id));fresh.slice(0,3).forEach(n=>{try{new Notification('WxRC News',{body:n.title||'New community update'})}catch(e){}});ext.seenNews=(db.news||[]).map(n=>n.id);saveExt()}
 
 function careerTitleName(name=''){return String(name).replace(/Championship\b/gi,'Champion').trim()}
-const WXRC_CAREER_KEY='wxrcCareerHighlightsV1';
-function loadCareerHighlightsLocal(){
- try{const x=JSON.parse(localStorage.getItem(WXRC_CAREER_KEY)||'[]');db.careerHighlights=Array.isArray(x)?x:[]}catch(e){db.careerHighlights=[]}
-}
-function saveCareerHighlightsLocal(){
- try{localStorage.setItem(WXRC_CAREER_KEY,JSON.stringify(db.careerHighlights||[]));saveDataCache()}catch(e){console.warn('Career Highlights save failed',e)}
-}
-loadCareerHighlightsLocal();
 function careerHighlightsFor(s){
  const counts=new Map();
  const add=(titleId)=>{if(titleId)counts.set(titleId,(counts.get(titleId)||0)+1)};
- // Automatic Career Highlights: every recorded past reign + every current championship.
+ // Completed reigns + current reign are always shown automatically.
  (db.championHistory||[]).filter(r=>r.superstarId===s.id||(!r.superstarId&&r.superstarName===s.name)).forEach(r=>add(r.titleId));
  (db.champions||[]).filter(r=>r.superstarId===s.id).forEach(r=>add(r.titleId));
  const manual=(db.careerHighlights||[]).filter(x=>x.superstar_id===s.id&&!x.hidden);
  const out=[];
  counts.forEach((count,titleId)=>{
-  const t=db.championships.find(v=>v.id===titleId);
-  const m=manual.find(x=>x.title_id===titleId);
+  const t=db.championships.find(v=>v.id===titleId),m=manual.find(x=>x.title_id===titleId);
   out.push({titleId,name:m?.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m?.reign_count||count)),overrideId:m?.id||'',automatic:!m});
  });
- manual.filter(m=>!counts.has(m.title_id)).forEach(m=>{
-  const t=db.championships.find(v=>v.id===m.title_id);
-  out.push({titleId:m.title_id||'',name:m.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m.reign_count||1)),overrideId:m.id||'',automatic:false});
- });
+ manual.filter(m=>!counts.has(m.title_id)).forEach(m=>{const t=db.championships.find(v=>v.id===m.title_id);out.push({titleId:m.title_id||'',name:m.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m.reign_count||1)),overrideId:m.id||'',automatic:false})});
  return out;
 }
 function careerHighlightsHTML(s){
@@ -687,20 +637,15 @@ function editCareerHighlight(superstarId,highlightId){
  const cur=(db.careerHighlights||[]).find(x=>x.id===highlightId);if(!cur)return;
  const titles=(db.championships||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
  openModal('Edit Career Highlight',`<form id="careerForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${titles.map(t=>`<option value="${t.id}" ${t.id===cur.title_id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div><div class="field"><label>TIMES HELD / COUNT</label><input name="count" type="number" min="1" step="1" value="${Math.max(1,Number(cur.reign_count||1))}" required></div><button class="btn primary full">Save Highlight</button></form>`);
- careerForm.onsubmit=e=>{e.preventDefault();const titleId=careerForm.titleId.value,t=db.championships.find(x=>x.id===titleId);cur.title_id=titleId;cur.name=careerTitleName(t?.name||'Championship');cur.reign_count=Math.max(1,Number(careerForm.count.value||1));saveCareerHighlightsLocal();closeModal();profile(superstarId);toastMsg('Career Highlight saved')}
+ careerForm.onsubmit=async e=>{e.preventDefault();const titleId=careerForm.titleId.value,t=db.championships.find(x=>x.id===titleId),count=Math.max(1,Number(careerForm.count.value||1)),name=careerTitleName(t?.name||'Championship');const r=await sb.from('superstar_career_highlights').update({title_id:titleId,name,reign_count:count,hidden:false}).eq('id',highlightId);if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();closeModal();profile(superstarId);toastMsg('Career Highlight saved online')}
 }
 function addCareerHighlight(superstarId){
- const s=db.superstars.find(x=>x.id===superstarId);if(!s)return;
- const titles=(db.championships||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
- if(!titles.length){alert('No Championships have been created yet. Add a Championship first.');return}
- openModal('Add Career Highlight',`<form id="careerPickForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${titles.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></div><div class="field"><label>TIMES HELD / COUNT</label><input name="count" type="number" min="1" step="1" value="1" required><div class="sub" style="margin-top:6px">Choose a title from Championships and enter manually how many times this Superstar held it. Championship History is not required.</div></div><button class="btn primary full">Add Highlight</button></form>`);
- careerPickForm.onsubmit=e=>{e.preventDefault();const titleId=careerPickForm.titleId.value,count=Math.max(1,Number(careerPickForm.count.value||1)),t=db.championships.find(x=>x.id===titleId);const existing=(db.careerHighlights||[]).find(x=>x.superstar_id===superstarId&&x.title_id===titleId);if(existing){existing.reign_count=count;existing.name=careerTitleName(t?.name||'Championship');existing.hidden=false}else(db.careerHighlights||[]).push({id:uid('ch'),superstar_id:superstarId,title_id:titleId,name:careerTitleName(t?.name||'Championship'),reign_count:count,hidden:false});saveCareerHighlightsLocal();closeModal();profile(superstarId);toastMsg('Career Highlight added')}
+ const s=db.superstars.find(x=>x.id===superstarId);if(!s)return;const titles=(db.championships||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));if(!titles.length)return alert('No Championships have been created yet.');
+ openModal('Add Career Highlight',`<form id="careerPickForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${titles.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></div><div class="field"><label>TIMES HELD / COUNT</label><input name="count" type="number" min="1" step="1" value="1" required></div><button class="btn primary full">Add Highlight</button></form>`);
+ careerPickForm.onsubmit=async e=>{e.preventDefault();const titleId=careerPickForm.titleId.value,count=Math.max(1,Number(careerPickForm.count.value||1)),t=db.championships.find(x=>x.id===titleId),name=careerTitleName(t?.name||'Championship'),existing=(db.careerHighlights||[]).find(x=>x.superstar_id===superstarId&&x.title_id===titleId);let r;if(existing)r=await sb.from('superstar_career_highlights').update({name,reign_count:count,hidden:false}).eq('id',existing.id);else r=await sb.from('superstar_career_highlights').insert({id:uid('ch'),superstar_id:superstarId,title_id:titleId,name,reign_count:count,hidden:false});if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();closeModal();profile(superstarId);toastMsg('Career Highlight saved online')}
 }
-function removeCareerHighlight(superstarId,highlightId){
- if(!confirm('Remove this Career Highlight?'))return;
- db.careerHighlights=(db.careerHighlights||[]).filter(x=>x.id!==highlightId);saveCareerHighlightsLocal();profile(superstarId);toastMsg('Career Highlight removed')
-}
-function profile(id){let s=db.superstars.find(x=>x.id===id);if(!s)return;openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn small blue" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button><button class="btn small danger" onclick="manageInjuries('${s.id}')">Injuries</button></div>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>${careerHighlightsHTML(s)}${timelineHTML(s)}`)}
+async function removeCareerHighlight(superstarId,highlightId){if(!confirm('Remove this Career Highlight?'))return;const r=await sb.from('superstar_career_highlights').delete().eq('id',highlightId);if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();profile(superstarId);toastMsg('Career Highlight removed')}
+function profile(id){let s=db.superstars.find(x=>x.id===id);if(!s)return;openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn small blue" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button><button class="btn small danger" onclick="manageInjuries('${s.id}')">Injuries</button></div>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>${careerHighlightsHTML(s)}`)}
 
 // Open the public site directly in News as WWE Universe; login is optional from the top-right button.
 window.addEventListener('load',()=>{
