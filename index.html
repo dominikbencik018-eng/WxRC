@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.4.0</title>
+<title>WWE x Roblox Community Online v5.4.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -51,7 +51,7 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 
 @media(max-width:760px){.shell{display:block}.side{display:none}.content{padding:17px 14px 90px}.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.hero h1{font-size:27px}.mobilebar{display:flex;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);left:10px;right:10px;background:#0b0c10f2;backdrop-filter:blur(15px);border:1px solid #292d35;border-radius:16px;z-index:10;overflow-x:auto;padding:7px 8px;box-shadow:0 12px 30px #0008}.mobilebar button{min-width:82px;border:0;background:transparent;color:#aaa;padding:7px 6px;font-size:10px;line-height:14px}.mobilebar button.active{color:#fff}.profile{grid-template-columns:1fr}.profile img{width:100%;height:250px}.two{grid-template-columns:1fr}.row{align-items:flex-start}.rowActions{max-width:100px}.champCard{grid-template-columns:62px 1fr}.grid .card{padding:13px}.superGrid,.titleGrid{grid-template-columns:1fr}.superCard,.superCard img{height:390px}.titleCard,.titleCard>img{height:420px}.historyHero,.historyHero img{height:430px}.historyName{font-size:27px}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
 <div id="login" class="login">
@@ -87,7 +87,14 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 <script>
 const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
 const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let sb=null;
+function initSupabase(){
+ try{
+  if(!sb && window.supabase?.createClient) sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  return !!sb;
+ }catch(e){console.error('Supabase init failed',e);return false}
+}
+initSupabase();
 let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],tryouts:[],trash:[],permissions:[],careerHighlights:[],appSettings:null}, current=null, page='News';
 let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];function unsavedCount(){return pendingChanges.length+pendingDeletes.length}
 function markUnsaved(table=null,id=null,kind=null){
@@ -114,6 +121,7 @@ function mapRows(rows,kind){
  });
 }
 async function loadOnlineData(){
+ if(!initSupabase())return [];
  const specs=[
   ['superstars','superstars','created_at'],
   ['championships','championships','created_at'],
@@ -221,6 +229,7 @@ function canEdit(){return isAdministrator()}
 function isGuest(){return current?.role==='WWE Universe'}
 
 function openSignup(){
+ if(!initSupabase()){alert('Online account creation is temporarily unavailable because the Supabase connection could not start.');return}
  openModal('Create WxRC Account',`<div class="sub" style="margin-bottom:14px">Choose the account type and enter the 6-digit registration code created by the WxRC Owner.</div><form id="codeForm"><div class="field"><label>ROLE</label><select name="role"><option value="WxRC Superstar">WxRC Superstar</option><option value="WxRC Moderator">WxRC Moderator</option><option value="WxRC Administrator">WxRC Administrator</option></select></div>${formField('code')}<button class="btn primary full">Continue</button></form>`);
  codeForm.onsubmit=async e=>{e.preventDefault();let code=codeForm.code.value.trim(),role=codeForm.role.value;if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {data,error}=await sb.rpc('verify_role_signup_code',{role_input:role,code_input:code});if(error||!data){alert('Incorrect registration code for '+role+'.');return}signupDetails(role,code)};
 }
@@ -265,6 +274,7 @@ async function finishAuth(user){
 }
 async function login(){
  loginError.textContent='Signing in...';
+ if(!initSupabase()){loginError.textContent='Online login is temporarily unavailable. Check your Wi-Fi/certificate connection or use Guest mode.';return}
  try{
   let {data,error}=await sb.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});
   if(error){loginError.textContent=error.message;return}
@@ -272,9 +282,15 @@ async function login(){
   if(await finishAuth(data.user)){loginError.textContent='';enter();loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.error('Background data load:',e))}
  }catch(e){console.error(e);loginError.textContent='Login error: '+(e?.message||e)}
 }
-async function guestLogin(){current={id:'guest',displayName:'Guest',role:'WWE Universe'};loadDataCache();enter();loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.error(e))}
+async function guestLogin(){
+ current={id:'guest',displayName:'Guest',role:'WWE Universe'};
+ loadDataCache();
+ enter();
+ if(initSupabase()) loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.warn('Guest online refresh unavailable',e));
+ else toastMsg('Guest mode · offline/cached data');
+}
 function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
-async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;await sb.auth.signOut();current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
+async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;if(initSupabase())try{await sb.auth.signOut()}catch(e){} current=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginPass.value=''}
 const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
 const WXRC_META_KEY='wxrcMetaV5';
 let meta=JSON.parse(localStorage.getItem(WXRC_META_KEY)||'{"announcements":[],"activity":[],"maintenance":false,"maintenanceMessage":"WxRC is currently under maintenance."}');
