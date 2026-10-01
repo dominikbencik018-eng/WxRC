@@ -131,8 +131,7 @@ async function loadOnlineData(){
   ['news','news','published_at'],
   ['announcements','announcements','created_at'],
   ['awards','awards','created_at'],
-  ['hall_of_fame','hallOfFame','created_at'],
-  ['superstar_career_highlights','careerHighlights','created_at']
+  ['hall_of_fame','hallOfFame','created_at']
  ];
  const results=await Promise.all(specs.map(async ([table,kind,order])=>{
   try{
@@ -152,7 +151,6 @@ async function loadOnlineData(){
   else if(r.table==='announcements')db.announcements=r.data||[];
   else if(r.table==='awards')db.awards=r.data||[];
   else if(r.table==='hall_of_fame')db.hallOfFame=r.data||[];
-  else if(r.table==='superstar_career_highlights')db.careerHighlights=r.data||[];
  }
  if(current && isManagement()){
   const extra=await Promise.allSettled([
@@ -637,7 +635,7 @@ function removeCareerHighlight(superstarId,highlightId){
  if(!confirm('Remove this Career Highlight?'))return;
  db.careerHighlights=(db.careerHighlights||[]).filter(x=>x.id!==highlightId);saveCareerHighlightsLocal();profile(superstarId);toastMsg('Career Highlight removed')
 }
-function profile(id){let s=db.superstars.find(x=>x.id===id);if(!s)return;openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<button class="btn small blue" style="margin-top:10px" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${careerHighlightsHTML(s)}</div></div>`)}
+function profile(id){let s=db.superstars.find(x=>x.id===id);if(!s)return;openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div><span class="badge red">${esc(s.brand||'Unassigned')}</span><h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<button class="btn small blue" style="margin-top:10px" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>${careerHighlightsHTML(s)}`)}
 </script>
 </body>
 </html>
