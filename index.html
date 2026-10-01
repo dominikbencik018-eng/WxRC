@@ -609,14 +609,27 @@ function saveCareerHighlightsLocal(){
 }
 loadCareerHighlightsLocal();
 function careerHighlightsFor(s){
- return (db.careerHighlights||[]).filter(x=>x.superstar_id===s.id&&!x.hidden).map(x=>{
-  const t=db.championships.find(v=>v.id===x.title_id);
-  return {titleId:x.title_id||'',name:x.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(x.reign_count||1)),overrideId:x.id||''}
+ const counts=new Map();
+ const add=(titleId)=>{if(titleId)counts.set(titleId,(counts.get(titleId)||0)+1)};
+ // Automatic Career Highlights: every recorded past reign + every current championship.
+ (db.championHistory||[]).filter(r=>r.superstarId===s.id||(!r.superstarId&&r.superstarName===s.name)).forEach(r=>add(r.titleId));
+ (db.champions||[]).filter(r=>r.superstarId===s.id).forEach(r=>add(r.titleId));
+ const manual=(db.careerHighlights||[]).filter(x=>x.superstar_id===s.id&&!x.hidden);
+ const out=[];
+ counts.forEach((count,titleId)=>{
+  const t=db.championships.find(v=>v.id===titleId);
+  const m=manual.find(x=>x.title_id===titleId);
+  out.push({titleId,name:m?.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m?.reign_count||count)),overrideId:m?.id||'',automatic:!m});
  });
+ manual.filter(m=>!counts.has(m.title_id)).forEach(m=>{
+  const t=db.championships.find(v=>v.id===m.title_id);
+  out.push({titleId:m.title_id||'',name:m.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m.reign_count||1)),overrideId:m.id||'',automatic:false});
+ });
+ return out;
 }
 function careerHighlightsHTML(s){
  const hs=careerHighlightsFor(s);
- return `<div style="border-top:1px solid #343b3d;margin-top:24px;padding-top:24px;width:100%"><div style="font-size:28px;font-weight:800;letter-spacing:.2px;margin-bottom:18px">Career Highlights</div>${hs.length?hs.map(x=>`<div style="background:#0c0e12;border:1px solid #292d36;border-radius:12px;padding:13px 14px;margin-bottom:10px"><div style="font-size:18px;font-weight:850;line-height:1.25">${x.count>1?esc(x.count+'x '):''}${esc(x.name)}</div>${canEdit()?`<div class="rowActions" style="justify-content:flex-start;margin-top:9px"><button class="btn small blue" onclick="editCareerHighlight('${s.id}','${x.overrideId}')">Edit</button><button class="btn small danger" onclick="removeCareerHighlight('${s.id}','${x.overrideId}')">Remove</button></div>`:''}</div>`).join(''):`<div class="sub" style="font-size:16px;margin-bottom:12px">No Career Highlights yet.</div>`}${canEdit()?`<button class="btn small" style="margin-top:4px" onclick="addCareerHighlight('${s.id}')">+ Add Career Highlight</button>`:''}</div>`
+ return `<div style="border-top:1px solid #42484b;margin-top:28px;padding-top:30px;width:100%"><div style="font-size:clamp(25px,5vw,34px);font-weight:400;letter-spacing:1px;margin-bottom:22px">Career Highlights</div>${hs.length?hs.map(x=>`<div style="font-size:clamp(25px,6vw,38px);font-weight:900;line-height:1.16;margin:0 0 18px;overflow-wrap:anywhere">${esc(x.name)}${x.count>1?` (x${x.count})`:''}${canEdit()&&x.overrideId?`<div style="display:flex;gap:7px;margin-top:7px"><button class="btn small blue" onclick="editCareerHighlight('${s.id}','${x.overrideId}')">Edit</button><button class="btn small danger" onclick="removeCareerHighlight('${s.id}','${x.overrideId}')">Remove</button></div>`:''}</div>`).join(''):`<div class="sub" style="font-size:16px;margin-bottom:12px">No Career Highlights yet.</div>`}${canEdit()?`<button class="btn small" style="margin-top:8px" onclick="addCareerHighlight('${s.id}')">+ Add Career Highlight</button>`:''}</div>`
 }
 function editCareerHighlight(superstarId,highlightId){
  const cur=(db.careerHighlights||[]).find(x=>x.id===highlightId);if(!cur)return;
