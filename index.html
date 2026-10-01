@@ -379,8 +379,15 @@ async function prepareCropInput(input,aspect=1,previewId=''){
 
 function news(){
  const items=(db.news||[]).slice().sort((a,b)=>new Date(b.publishedAt||0)-new Date(a.publishedAt||0));
- view.innerHTML=`<div class="sectionHead"><div><h2>WxRC News</h2><div class="sub">Official updates, results, injuries, transfers and announcements.</div></div><div style="display:flex;gap:8px"><button class="btn" onclick="enableNotifications()">🔔 Notifications</button>${canEdit()?`<button class="btn primary" onclick="editNews()">+ Add News</button>`:''}</div></div>${upcomingEventsHTML()}
- <div class="grid">${items.map(n=>`<div class="card">${n.image?`<img class="cover" src="${n.image}" alt="">`:''}<div class="sub">${n.publishedAt?new Date(n.publishedAt).toLocaleString():''}${n.author?' • '+esc(n.author):''}</div><h3 style="margin:8px 0">${esc(n.title)}</h3><div style="white-space:pre-wrap;line-height:1.55">${esc(n.content)}</div>${canEdit()?`<div class="rowActions" style="margin-top:14px"><button class="btn small blue" onclick="editNews('${n.id}')">Edit</button><button class="btn small danger" onclick="deleteNews('${n.id}')">Delete</button></div>`:''}</div>`).join('')||`<div class="card"><h3>No news yet</h3><div class="sub">Official WxRC updates will appear here.</div></div>`}</div>`;
+ const featured=items[0],rest=items.slice(1);
+ const anns=(db.announcements||[]).slice().sort((a,b)=>Number(b.pinned||0)-Number(a.pinned||0)).slice(0,3);
+ const fmt=d=>{try{return d?new Date(d).toLocaleString():''}catch(e){return d||''}};
+ const article=n=>`<div class="card" style="overflow:hidden">${n.image?`<img class="cover" src="${n.image}" alt="">`:''}<div class="sub">${fmt(n.publishedAt)}${n.author?' • '+esc(n.author):''}</div><h3 style="margin:8px 0;font-size:22px">${esc(n.title)}</h3><div style="white-space:pre-wrap;line-height:1.6">${esc(n.content)}</div>${canEdit()?`<div class="rowActions" style="margin-top:14px"><button class="btn small blue" onclick="editNews('${n.id}')">Edit</button><button class="btn small danger" onclick="deleteNews('${n.id}')">Delete</button></div>`:''}</div>`;
+ view.innerHTML=`<div class="sectionHead"><div><span class="badge red">WWE x ROBLOX COMMUNITY</span><h2 style="margin:8px 0 2px">WxRC News</h2><div class="sub">The latest community news, show results, injuries, transfers and official announcements.</div></div>${canEdit()?`<button class="btn primary" onclick="editNews()">+ Add News</button>`:''}</div>
+ ${anns.length?`<div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><h3>Official Announcements</h3></div>${anns.map(a=>`<div class="row"><div>${a.pinned?'<span class="badge red" style="margin-right:8px">PINNED</span>':''}<b>${esc(a.title||'Announcement')}</b><div class="sub" style="margin-top:5px">${esc(a.content||'')}</div></div></div>`).join('')}</div>`:''}
+ ${featured?`<div class="sectionHead"><h3>Featured Story</h3><span class="badge red">LATEST</span></div><div class="card" style="overflow:hidden;padding:0">${featured.image?`<img src="${featured.image}" alt="" style="width:100%;max-height:420px;object-fit:cover;display:block">`:''}<div style="padding:20px"><div class="sub">${fmt(featured.publishedAt)}${featured.author?' • '+esc(featured.author):''}</div><h2 style="margin:8px 0 12px;font-size:clamp(25px,5vw,40px)">${esc(featured.title)}</h2><div style="white-space:pre-wrap;line-height:1.65;font-size:16px">${esc(featured.content)}</div>${canEdit()?`<div class="rowActions" style="margin-top:16px"><button class="btn small blue" onclick="editNews('${featured.id}')">Edit</button><button class="btn small danger" onclick="deleteNews('${featured.id}')">Delete</button></div>`:''}</div></div>`:`<div class="card"><h3>No news yet</h3><div class="sub">Official WxRC updates will appear here.</div></div>`}
+ ${upcomingEventsHTML()}
+ ${rest.length?`<div class="sectionHead"><div><h3>Latest News</h3><div class="sub">More stories from WxRC.</div></div><span class="badge">${rest.length} ${rest.length===1?'STORY':'STORIES'}</span></div><div class="grid">${rest.map(article).join('')}</div>`:''}`;
 }
 function editNews(id=''){
  if(!canEdit())return;
@@ -581,9 +588,9 @@ async function manageSuperstar(id){
  smForm.onsubmit=async e=>{e.preventDefault();if(await save()){await onlineActivity('Updated management record for '+s.name);await loadOnlineData();closeModal();profile(id)}};
 }
 
-// WxRC extended features: achievements, injuries and member notifications.
+// WxRC extended features: achievements and injuries.
 const WXRC_EXT_KEY='wxrcExtendedFeaturesV1';
-let ext={achievements:[],injuries:[],seenNews:[],seenActivity:[]};
+let ext={achievements:[],injuries:[]};
 function loadExt(){try{const x=JSON.parse(localStorage.getItem(WXRC_EXT_KEY)||'{}');ext={...ext,...x}}catch(e){}}
 function saveExt(){localStorage.setItem(WXRC_EXT_KEY,JSON.stringify(ext))}
 loadExt();
@@ -609,10 +616,6 @@ function championshipDetail(id){
  openModal(t.name,`${t.image?`<img src="${esc(t.image)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:16px;margin-bottom:14px">`:''}<span class="badge gold">${esc(t.brand||'CHAMPIONSHIP')}</span><h2 style="margin:10px 0">${esc(t.name)}</h2><div class="kv"><div><b>Current Champion</b>${esc(cs?.name||'Vacant')}</div><div><b>Status</b>${esc(t.status||'Active')}</div><div><b>Recorded Reigns</b>${all.length}</div><div><b>Current Reign</b>${c?esc(reignTime(c.dateWon)):'—'}</div></div><div class="settingsGroup"><h3>Title History</h3>${all.slice().reverse().map(x=>`<div class="row"><div><b>${esc(x.name)}</b><div class="sub">${esc(x.from||'—')} — ${esc(x.to||'Present')}</div></div></div>`).join('')||empty()}</div><button class="btn full" onclick="closeModal();championshipHistory('${id}')">Open Full Championship History</button>`)
 }
 function upcomingEventsHTML(){const today=new Date().toISOString().slice(0,10);const rows=(db.shows||[]).filter(x=>(x.date||'')>=today&&String(x.status||'').toLowerCase()!=='finished').sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(0,4);return `<div class="settingsGroup"><h3>Upcoming Events</h3>${rows.map(x=>`<div class="row" onclick="showControl('${x.id}')" style="cursor:pointer"><div><b>${esc(x.name)}</b><div class="sub">${esc(x.date||'')} ${esc(x.time||'')} · ${esc(x.venue||'')}</div></div><span class="badge red">UPCOMING</span></div>`).join('')||`<div class="sub">No upcoming events.</div>`}</div>`}
-async function enableNotifications(){if(!('Notification' in window))return alert('Browser notifications are not supported on this device/browser.');const p=await Notification.requestPermission();toastMsg(p==='granted'?'Notifications enabled':'Notifications were not enabled')}
-function openActivityFeed(){const acts=(db.activityLog||[]).slice(0,30);openModal('Notifications / Activity Feed',`<button class="btn primary full" onclick="enableNotifications()">Enable Browser Notifications</button><div class="settingsGroup"><h3>Recent Activity</h3>${acts.map(a=>`<div class="row"><div>${esc(a.action||'Activity')}<div class="sub">${esc(a.actor_name||'WxRC')} · ${a.created_at?new Date(a.created_at).toLocaleString():''}</div></div></div>`).join('')||`<div class="sub">For public members, new News and upcoming event updates can trigger browser notifications while the app is open.</div>`}</div>`)}
-function notifyNewPublicContent(){if(!('Notification' in window)||Notification.permission!=='granted')return;const seen=new Set(ext.seenNews||[]);const fresh=(db.news||[]).filter(n=>!seen.has(n.id));fresh.slice(0,3).forEach(n=>{try{new Notification('WxRC News',{body:n.title||'New community update'})}catch(e){}});ext.seenNews=(db.news||[]).map(n=>n.id);saveExt()}
-
 function careerTitleName(name=''){return String(name).replace(/Championship\b/gi,'Champion').trim()}
 function careerHighlightsFor(s){
  const counts=new Map();
