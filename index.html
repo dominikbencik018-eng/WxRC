@@ -499,6 +499,23 @@ function rivalries(){generic('Rivalries','Manage active and completed rivalries.
 function storylines(){generic('Storylines','Keep creative plans and storyline notes.','storylines',['name','members','status','notes'])}
 function contracts(){generic('Contracts','Manage Superstar and Staff contracts.','contracts',['name','person','value','startDate','endDate','status'])}
 function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(balances[t.person]||0)+Number(t.amount||0));view.innerHTML=`<div class="sectionHead"><div><h2>WWE Coins</h2><div class="sub">Community economy and transaction history.</div></div>${canEdit()?`<button class="btn primary" onclick="editTransaction()">+ Transaction</button>`:''}</div><div class="grid">${Object.entries(balances).map(([p,b])=>`<div class="card stat"><span class="muted">${esc(p)}</span><strong>${b}</strong><span class="badge gold">WWE COINS</span></div>`).join('')||empty()}</div><div class="sectionHead"><h3>Transactions</h3></div><div class="list">${db.transactions.slice().reverse().map(t=>`<div class="row"><div><b>${esc(t.person)}</b><div class="sub">${esc(t.note||'Transaction')} · ${esc(t.date||'')}</div></div><b>${Number(t.amount)>0?'+':''}${Number(t.amount)}</b></div>`).join('')||empty()}</div>`}
+function editUser(id){
+ const u=(db.users||[]).find(x=>x.id===id);if(!u)return;
+ if(!isManagement())return;
+ const roles=isOwner()?['WxRC Superstar','WxRC Staff','WxRC Moderator','WxRC Administrator','WxRC Owner']:['WxRC Superstar','WxRC Staff','WxRC Moderator','WxRC Administrator'];
+ const superstarOptions=['<option value="">Not linked</option>'].concat((db.superstars||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(s=>`<option value="${esc(s.id)}" ${u.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`)).join('');
+ openModal('Edit Account',`<form id="editAccountForm">${formField('displayName',u.displayName||'')}${formField('username',u.username||'')}<div class="field"><label>ROLE</label><select name="role">${roles.map(r=>`<option value="${esc(r)}" ${normalizeRole(u.role)===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId">${superstarOptions}</select></div><button class="btn primary full">Save Account</button></form>`);
+ const f=document.getElementById('editAccountForm');
+ f.onsubmit=e=>{e.preventDefault();
+  const displayName=f.displayName.value.trim(),username=f.username.value.trim(),role=f.role.value,superstarId=f.superstarId.value;
+  if(!displayName||!username){alert('Display name and username are required.');return}
+  if(!isOwner()&&normalizeRole(u.role)==='WxRC Owner'){alert('Only the WxRC Owner can edit an Owner account.');return}
+  u.displayName=displayName;u.username=username;u.role=role;u.superstarId=superstarId;
+  if(current&&current.id===u.id){current.displayName=displayName;current.username=username;current.role=role;current.superstarId=superstarId}
+  markUnsaved('profiles',u.id,'edit');saveDataCache();closeModal();renderNav();settings();toastMsg('Account updated — go to Settings to save');
+ };
+}
+
 async function settings(){
  if(!isManagement()){go('News');return}
  let subs=(db.gimmickSubmissions||[]).filter(g=>(g.reviewStatus||'Pending')==='Pending');
