@@ -448,12 +448,31 @@ function editChampion(id=''){
  if(!canEdit())return;
  const existing=db.champions.find(c=>c.id===id);
  const options=db.championships.map(t=>`<option value="${esc(t.id)}" ${existing?.titleId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
- const stars=db.superstars.map(st=>`<option value="${esc(st.id)}" ${existing?.superstarId===st.id?'selected':''}>${esc(st.name)}</option>`).join('');
+ const stars=db.superstars.map(st=>`<option value="${esc(st.id)}" ${existing?.superstarId===st.id?'selected':''}>${esc(st.name)}${/^(VACATE CHAMPIONSHIP|VACATE CHAMPIONSHIP Female)$/i.test(String(st.nickname||"").trim())?" — "+esc(st.nickname):""}</option>`).join('');
  if(!options||!stars)return alert('Create a Championship and Superstar first.');
  openModal(existing?'Edit Champion':'Set New Champion',`<form id="champForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${options}</select></div><div class="field"><label>SUPERSTAR</label><select name="superstarId" required>${stars}</select></div>${formField('dateWon',existing?.dateWon||new Date().toISOString().slice(0,10),'date')}${formField('notes',existing?.notes||'')}<button class="btn primary full">Save Champion</button></form>`);
  champForm.onsubmit=e=>{
   e.preventDefault();const f=champForm,titleId=f.titleId.value,starId=f.superstarId.value,dateWon=f.dateWon.value;
   if(!dateWon)return alert('Choose a date.');
+  const chosen=db.superstars.find(x=>x.id===starId);
+  const nick=String(chosen?.nickname||'').trim().toUpperCase();
+  const vacateKind=nick==='VACATE CHAMPIONSHIP'?'male':nick==='VACATE CHAMPIONSHIP FEMALE'?'female':null;
+  if(vacateKind){
+   const title=db.championships.find(x=>x.id===titleId);
+   const isFemale=/women[’']?s/i.test(title?.name||'');
+   if((vacateKind==='female')!==isFemale){alert('This VACATE CHAMPIONSHIP nickname does not match the championship category.');return;}
+   const holder=activeChampionFor(titleId);
+   if(!holder){alert('Championship is already vacant.');return;}
+   if(!confirm('Vacate '+title.name+'?'))return;
+   wxrcChampionHistory(holder,dateWon);
+   db.champions=db.champions.filter(x=>x.id!==holder.id);
+   pendingChanges=pendingChanges.filter(x=>!(x.table==='champions'&&x.id===holder.id));
+   pendingDeletes.push({table:'champions',id:holder.id});
+   unsavedChanges=true;
+   wxrcQueueDiscord(titleId,holder.superstarId,null,'Vacated via '+chosen.nickname);
+   saveDataCache();closeModal();champions();toastMsg('Championship vacated — save in Settings to publish');
+   return;
+  }
   const currentHolder=activeChampionFor(titleId);
   const prevId=currentHolder?.superstarId||null;
   if(existing && existing.titleId!==titleId){alert('To move a champion to another title, vacate the old title first.');return;}
@@ -476,7 +495,7 @@ function vacateChampionship(titleId){
 function deleteChampion(id){
  if(!canEdit())return;const c=db.champions.find(x=>x.id===id);if(!c)return;
  if(!confirm('Remove this champion? This will vacate the title.'))return;
- vacateChampionship(c.titleId);
+ editChampion(c.id);
 }
 
 function activeChampionFor(titleId){return db.champions.find(c=>c.titleId===titleId)}
@@ -491,7 +510,7 @@ function reignTime(start,end){
  if(d<1)return '<1 DAY';
  return `${d} ${d===1?'DAY':'DAYS'}`;
 }
-function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge ${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'red':'gold'}">${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'VACANT CHAMPIONSHIP':'CHAMPION'}</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignTime(c.dateWon)}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" data-vacate-title="${t.id}" onclick="event.stopPropagation();vacateChampionship('${t.id}')">VACATE CHAMPIONSHIP</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
+function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge ${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'red':'gold'}">${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'VACANT CHAMPIONSHIP':'CHAMPION'}</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignTime(c.dateWon)}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
 function champions(){view.innerHTML=`<div class="sectionHead"><div><h2>Champions</h2><div class="sub">Current title holders. Tap a champion to see the full title history.</div></div>${canEdit()?`<button class="btn primary" onclick="editChampion()">+ Set New Champion</button>`:''}</div>${champList()}`}
 function backToChampions(){
  page='Champions';
