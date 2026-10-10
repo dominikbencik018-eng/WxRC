@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090a0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WWE x Roblox">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>WWE x Roblox Community Online v5.5.1</title>
+<style>
+:root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit}.hidden{display:none!important}.app{max-width:1150px;margin:auto;min-height:100vh}
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}.loginCard{width:min(440px,100%);background:rgba(16,18,24,.96);border:1px solid #30333c;border-radius:26px;padding:28px;box-shadow:0 25px 70px #0009}
+.brand{display:flex;align-items:center;gap:13px}.mark{font-size:29px;font-weight:1000;font-style:italic;letter-spacing:-3px}.slash{width:34px;height:5px;background:var(--red);transform:skew(-28deg);display:inline-block;margin-left:-33px;margin-bottom:-12px}.brandText{font-weight:900;letter-spacing:.4px}.sub{color:var(--muted);font-size:13px}
+h1{font-size:27px;margin:24px 0 5px}h2{font-size:21px;margin:0}h3{margin:0 0 8px}.field{margin:13px 0}.field label{display:block;font-size:12px;color:#b8bdc8;margin:0 0 6px}
+input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid #343945;border-radius:12px;padding:12px;outline:none}textarea{min-height:85px;resize:vertical}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer;background:#272b34;color:#fff}.btn.primary{background:linear-gradient(135deg,#ef233c,#b20f21)}.btn.blue{background:#174ed6}.btn.danger{background:#7f1520}.btn.ghost{border:1px solid #343945;background:transparent}.full{width:100%}.divider{display:flex;align-items:center;gap:10px;color:#707783;font-size:12px;margin:17px 0}.divider:before,.divider:after{content:"";height:1px;background:#30343d;flex:1}
+.shell{display:grid;grid-template-columns:235px 1fr;min-height:100vh}.side{border-right:1px solid #252832;background:#090a0e;padding:20px 14px;position:sticky;top:0;height:100vh;overflow:auto}.side .brand{padding:5px 7px 20px}.nav button{width:100%;text-align:left;border:0;background:transparent;color:#c8ccd4;padding:11px 12px;border-radius:10px;margin:2px 0;cursor:pointer}.nav button.active,.nav button:hover{background:#1a1d24;color:#fff}.nav .adminOnly{color:#ff9aa5}.content{padding:24px 25px 90px;min-width:0}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:23px}.userchip{display:flex;align-items:center;gap:9px;background:#14171d;border:1px solid #292d35;padding:7px 10px;border-radius:99px}.avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#2c3038;display:grid;place-items:center;font-weight:900}
+.hero{background:linear-gradient(125deg,#261116,#11131a 55%,#0c1a37);border:1px solid #30343d;border-radius:22px;padding:24px;overflow:hidden;position:relative}.hero:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;background:#d51c2d22;right:-45px;top:-65px}.hero h1{margin:4px 0 6px;font-size:32px}.badge{display:inline-block;font-size:11px;font-weight:900;padding:5px 8px;border-radius:999px;background:#272b34;color:#ddd}.badge.red{background:#53141c;color:#ffb0b8}.badge.blue{background:#142c62;color:#9fc0ff}.badge.green{background:#113d25;color:#8df0ad}.badge.gold{background:#473914;color:#ffe08a}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}.card{background:linear-gradient(180deg,#151820,#101218);border:1px solid #292e38;border-radius:17px;padding:16px;min-width:0}.stat strong{font-size:28px;display:block}.muted{color:var(--muted)}.sectionHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:25px 0 12px}.list{display:grid;gap:10px}.row{background:#12151b;border:1px solid #292e37;border-radius:14px;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.rowMain{display:flex;gap:12px;align-items:center;min-width:0}.thumb{width:54px;height:54px;border-radius:12px;object-fit:cover;background:#242832}.rowActions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.small{padding:7px 9px;font-size:12px}.champCard{display:grid;grid-template-columns:72px 1fr;gap:14px}.champCard img{width:72px;height:82px;border-radius:13px;object-fit:cover;background:#222}.days{font-size:24px;font-weight:1000;color:var(--gold)}.empty{padding:28px;text-align:center;color:#777;border:1px dashed #333;border-radius:15px}.modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:18px;z-index:20}.modalBox{width:min(600px,100%);max-height:90vh;overflow:auto;background:#12151b;border:1px solid #343944;border-radius:20px;padding:20px}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profile{display:grid;grid-template-columns:130px 1fr;gap:18px}.profile img{width:130px;height:160px;object-fit:cover;border-radius:16px;background:#222}.kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}.kv div{background:#0c0e12;border:1px solid #292d36;padding:10px;border-radius:10px}.kv b{display:block;font-size:11px;color:#8e95a1;margin-bottom:3px}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;color:#111;padding:10px 14px;border-radius:10px;font-weight:800;z-index:50}
+.mobilebar{display:none}
+.superGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.superCard{position:relative;min-height:330px;border-radius:20px;overflow:hidden;background:#11141a;border:1px solid #2d323c;cursor:pointer}
+.superCard img{width:100%;height:330px;object-fit:cover;display:block}
+.superCard .shade{position:absolute;inset:35% 0 0;background:linear-gradient(transparent,#050608 88%)}
+.superCard .info{position:absolute;left:16px;right:16px;bottom:16px}
+.superCard h3{font-size:24px;margin:5px 0 2px}
+.titleGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.titleCard{position:relative;min-height:360px;border-radius:21px;overflow:hidden;background:#11141a;border:1px solid #2d323c;cursor:pointer}
+.titleCard>img{width:100%;height:360px;object-fit:cover;display:block}
+.titleCard .shade{position:absolute;inset:25% 0 0;background:linear-gradient(transparent,#050608 88%)}
+.titleCard .info{position:absolute;left:18px;right:18px;bottom:18px}
+.titleCard h3{font-size:27px;margin:7px 0 3px}
+.titleCard .titleName{font-weight:900;font-size:14px}
+.historyHero{position:relative;min-height:380px;border-radius:22px;overflow:hidden;background:#101319;border:1px solid #303540;margin-bottom:18px}
+.historyHero img{width:100%;height:380px;object-fit:cover}
+.historyHero .shade{position:absolute;inset:20% 0 0;background:linear-gradient(transparent,#050608 90%)}
+.historyHero .copy{position:absolute;left:20px;right:20px;bottom:20px}
+.historyHero h1{margin:6px 0 3px;font-size:34px}
+.historyList{background:#f8f8f8;color:#111;border-radius:18px;overflow:hidden}
+.historyRow{padding:25px 22px;border-bottom:1px solid #d5d5d5}
+.historyRow:last-child{border-bottom:0}
+.historyName{font-family:Georgia,serif;font-size:30px;margin-bottom:13px}
+.historyDates{font-weight:1000;font-size:19px;text-transform:uppercase}
+.historyDays{font-size:16px;color:#606060;margin-top:5px}
+.settingsGroup{background:#12151b;border:1px solid #292e37;border-radius:17px;padding:16px;margin-top:14px}
+.rolePill{display:inline-block;padding:5px 8px;border-radius:999px;background:#242934;font-size:11px;font-weight:900}
+
+@media(max-width:760px){.shell{display:block}.side{display:none}.content{padding:17px 14px 90px}.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.hero h1{font-size:27px}.mobilebar{display:flex;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);left:10px;right:10px;background:#0b0c10f2;backdrop-filter:blur(15px);border:1px solid #292d35;border-radius:16px;z-index:10;overflow-x:auto;padding:7px 8px;box-shadow:0 12px 30px #0008}.mobilebar button{min-width:82px;border:0;background:transparent;color:#aaa;padding:7px 6px;font-size:10px;line-height:14px}.mobilebar button.active{color:#fff}.profile{grid-template-columns:1fr}.profile img{width:100%;height:250px}.two{grid-template-columns:1fr}.row{align-items:flex-start}.rowActions{max-width:100px}.champCard{grid-template-columns:62px 1fr}.grid .card{padding:13px}.superGrid,.titleGrid{grid-template-columns:1fr}.superCard,.superCard img{height:390px}.titleCard,.titleCard>img{height:420px}.historyHero,.historyHero img{height:430px}.historyName{font-size:27px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+</head>
+<body>
+<div id="login" class="login">
+  <div class="loginCard">
+    <div class="brand"><div><span class="mark">WWE</span><span class="slash"></span></div><div><div class="brandText">WWE x Roblox Community</div><div class="sub">Community Management System</div></div></div>
+    <h1>Welcome back</h1><div class="sub">Sign in as a WWE Superstar or WWE Staff member.</div>
+    <div class="field"><label>EMAIL</label><input id="loginUser" type="email" autocomplete="email"></div>
+    <div class="field"><label>PASSWORD</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+    <button class="btn primary full" onclick="login()">Log In</button>
+<button class="btn ghost full" style="margin-top:9px" onclick="openSignup()">Sign Up / Create an Account</button>
+    <div class="divider">WWE UNIVERSE</div>
+    <button class="btn ghost full" onclick="guestLogin()">Continue as Guest</button>
+    <p id="loginError" class="sub" style="color:#ff7e89"></p>
+  </div>
+</div>
+
+<div id="main" class="app hidden">
+<div class="shell">
+<aside class="side">
+ <div class="brand"><div><span class="mark">WWE</span><span class="slash"></span></div><div><div class="brandText">x Roblox</div><div class="sub">Community</div></div></div>
+ <div id="sideNav" class="nav"></div>
+</aside>
+<main class="content">
+ <div class="top"><div><h2 id="pageTitle">Home</h2><div class="sub">WWE x Roblox Community</div></div><div class="userchip"><div id="userAvatar" class="avatar">G</div><div><b id="userName">Guest</b><div id="userRole" class="sub">WWE Universe</div></div><button class="btn small ghost" onclick="openActivityFeed()">🔔 <span id="notifCount"></span></button><button class="btn small ghost" onclick="refreshApp()">↻ Refresh</button><button id="authTopBtn" class="btn small ghost" onclick="openLoginScreen()">Log In</button></div></div>
+ <div id="view"></div>
+</main>
+</div>
+<div id="mobileNav" class="mobilebar"></div>
+</div>
+<div id="modal" class="modal hidden"><div class="modalBox"><div class="modalHead"><h2 id="modalTitle"></h2><button class="btn small ghost" onclick="closeModal()">✕</button></div><div id="modalBody"></div></div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const SUPABASE_URL='https://jtukhhpdypjaknrozfxz.supabase.co';
+const SUPABASE_KEY='sb_publishable_8oivtg25TBra9X0iYlkkhA_kAoaRUNz';
+let sb=null;
+function initSupabase(){
+ try{
+  if(!sb && window.supabase?.createClient) sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  return !!sb;
+ }catch(e){console.error('Supabase init failed',e);return false}
+}
+initSupabase();
+let db={users:[],superstars:[],championships:[],champions:[],championHistory:[],shows:[],transactions:[],gimmickSubmissions:[],news:[],announcements:[],activityLog:[],superstarManagement:[],awards:[],hallOfFame:[],showMatches:[],permissions:[],careerHighlights:[],appSettings:null}, current=null, page='News';
+let unsavedChanges=false, pendingDeletes=[], pendingChanges=[];function unsavedCount(){return pendingChanges.length+pendingDeletes.length}
+function markUnsaved(table=null,id=null,kind=null){
+ unsavedChanges=true;
+ if(table&&id){
+  const key=table+'|'+id;
+  const i=pendingChanges.findIndex(x=>x.key===key);
+  const item={key,table,id,kind};
+  if(i>=0)pendingChanges[i]=item;else pendingChanges.push(item);
+ }
+ toastMsg('Unsaved changes — go to Settings to save');
+}
+
+
+function mapRows(rows,kind){
+ return (rows||[]).map(x=>{
+  if(kind==='profiles')return {id:x.id,username:x.username||'',displayName:x.display_name||'',role:x.role||'WxRC Superstar',superstarId:x.superstar_id||''};
+  if(kind==='champions')return {id:x.id,superstarId:x.superstar_id,titleId:x.title_id,dateWon:x.date_won,image:x.image||'',notes:x.notes||''};
+  if(kind==='history')return {id:x.id,superstarId:x.superstar_id,superstarName:x.superstar_name||'',titleId:x.title_id,dateWon:x.date_won,dateLost:x.date_lost||'',image:x.image||'',notes:x.notes||''};
+  if(kind==='shows')return {id:x.id,name:x.name||'',date:x.show_date||'',time:x.show_time||'',status:x.status||'',venue:x.venue||'',image:x.image||''};
+  if(kind==='transactions')return {id:x.id,person:x.person||'',amount:x.amount||0,note:x.note||'',date:x.transaction_date||''};
+  if(kind==='gimmicks')return {id:x.id,userId:x.user_id||'',name:x.name||'',nickname:x.nickname||'',brand:x.brand||'',status:x.status||'',finisher:x.finisher||'',signature:x.signature||'',theme:x.theme||'',debut:x.debut||'',height:x.height||'',weight:x.weight||'',notes:x.notes||'',image:x.image||'',reviewStatus:x.review_status||'Pending',submittedBy:'Online User'};
+  return x;
+ });
+}
+async function loadOnlineData(){
+ if(!initSupabase())return [];
+ const specs=[
+  ['superstars','superstars','created_at'],
+  ['championships','championships','created_at'],
+  ['champions','champions','created_at'],
+  ['champion_history','history','created_at'],
+  ['shows','shows','created_at'],
+  ['news','news','published_at'],
+  ['announcements','announcements','created_at'],
+  ['awards','awards','created_at'],
+  ['hall_of_fame','hallOfFame','created_at'],
+  ['superstar_achievements','achievements','created_at'],
+  ['superstar_injuries','injuries','created_at'],
+  ['superstar_career_highlights','careerHighlights','created_at']
+ ];
+ const results=await Promise.all(specs.map(async ([table,kind,order])=>{
+  try{
+   const r=await sb.from(table).select('*').order(order,{ascending:table==='news'?false:true});
+   if(r.error){console.error(table,r.error);return {table,kind,ok:false,error:r.error}}
+   return {table,kind,ok:true,data:r.data||[]};
+  }catch(error){console.error(table,error);return {table,kind,ok:false,error}}
+ }));
+ for(const r of results){
+  if(!r.ok)continue;
+  if(r.table==='superstars')db.superstars=mapRows(r.data);
+  else if(r.table==='championships')db.championships=mapRows(r.data);
+  else if(r.table==='champions')db.champions=mapRows(r.data,'champions');
+  else if(r.table==='champion_history')db.championHistory=mapRows(r.data,'history');
+  else if(r.table==='shows')db.shows=mapRows(r.data,'shows');
+  else if(r.table==='news')db.news=r.data.map(x=>({id:x.id,title:x.title||'',content:x.content||'',author:x.author||'',image:x.image||'',publishedAt:x.published_at||x.created_at||''}));
+  else if(r.table==='announcements')db.announcements=r.data||[];
+  else if(r.table==='awards')db.awards=r.data||[];
+  else if(r.table==='hall_of_fame')db.hallOfFame=r.data||[];
+  else if(r.table==='superstar_achievements')ext.achievements=(r.data||[]).map(x=>({id:x.id,superstarId:x.superstar_id,name:x.name||'',count:Number(x.reign_count||1),date:x.achievement_date||''}));
+  else if(r.table==='superstar_injuries')ext.injuries=(r.data||[]).map(x=>({id:x.id,superstarId:x.superstar_id,reason:x.reason||'',from:x.out_since||'',expected:x.expected_return||'',returned:x.returned_on||''}));
+  else if(r.table==='superstar_career_highlights')db.careerHighlights=(r.data||[]).map(x=>({id:x.id,superstar_id:x.superstar_id,title_id:x.title_id||'',name:x.name||'',reign_count:Number(x.reign_count||1),hidden:!!x.hidden}));
+ }
+ if(current && isManagement()){
+  const extra=await Promise.allSettled([
+   sb.from('profiles').select('*'),
+   sb.from('transactions').select('*').order('created_at'),
+   sb.from('gimmick_submissions').select('*').order('created_at'),
+   sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(100),
+   sb.from('superstar_management').select('*'),
+   sb.from('show_matches').select('*').order('created_at'),
+   sb.from('admin_permissions').select('*'),
+   sb.from('app_settings').select('*').eq('id',1).maybeSingle()
+  ]);
+  const vals=extra.map(x=>x.status==='fulfilled'?x.value:null);
+  if(vals[0]&&!vals[0].error)db.users=mapRows(vals[0].data,'profiles');
+  if(vals[1]&&!vals[1].error)db.transactions=mapRows(vals[1].data,'transactions');
+  if(vals[2]&&!vals[2].error)db.gimmickSubmissions=mapRows(vals[2].data,'gimmicks');
+  if(vals[3]&&!vals[3].error)db.activityLog=vals[3].data||[];
+  if(vals[4]&&!vals[4].error)db.superstarManagement=vals[4].data||[];
+  if(vals[5]&&!vals[5].error)db.showMatches=vals[5].data||[];
+  if(vals[6]&&!vals[6].error)db.permissions=vals[6].data||[];
+  if(vals[7]&&!vals[7].error)db.appSettings=vals[7].data||null;
+ }
+ saveDataCache();
+ setTimeout(()=>notifyNewPublicContent(),50);
+ return results;
+}
+let saveInProgress=null;
+async function commitAllChanges(){
+ if(!canEdit())return false;
+ if(saveInProgress)return await saveInProgress;
+ saveInProgress=(async()=>{
+  const rowFor=(table,id)=>{
+   if(table==='profiles'){const x=db.users.find(v=>v.id===id);return x&&{username:x.username,display_name:x.displayName,role:x.role,superstar_id:x.superstarId||null}}
+   if(table==='superstars'){const x=db.superstars.find(v=>v.id===id);return x&&{id:x.id,name:x.name,nickname:x.nickname||null,brand:x.brand||null,status:x.status||null,finisher:x.finisher||null,signature:x.signature||null,theme:x.theme||null,debut:x.debut||null,height:x.height||null,weight:x.weight||null,wins:Number(x.wins||0),losses:Number(x.losses||0),image:x.image||null}}
+   if(table==='championships'){const x=db.championships.find(v=>v.id===id);return x&&{id:x.id,name:x.name,brand:x.brand||null,status:x.status||null,image:x.image||null}}
+   if(table==='champions'){const x=db.champions.find(v=>v.id===id);return x&&{id:x.id,superstar_id:x.superstarId,title_id:x.titleId,date_won:x.dateWon,image:x.image||null,notes:x.notes||null}}
+   if(table==='champion_history'){const x=db.championHistory.find(v=>v.id===id);return x&&{id:x.id,superstar_id:x.superstarId||null,superstar_name:x.superstarName||null,title_id:x.titleId,date_won:x.dateWon,date_lost:x.dateLost||null,image:x.image||null,notes:x.notes||null}}
+   if(table==='shows'){const x=db.shows.find(v=>v.id===id);return x&&{id:x.id,name:x.name,show_date:x.date||null,show_time:x.time||null,status:x.status||null,venue:x.venue||null,image:x.image||null}}
+   if(table==='transactions'){const x=db.transactions.find(v=>v.id===id);return x&&{id:x.id,person:x.person,amount:Number(x.amount||0),note:x.note||null,transaction_date:x.date||null}}
+   return null;
+  };
+  for(const d of pendingDeletes){
+   const r=await sb.from(d.table).delete().eq('id',d.id);
+   if(r.error){alert('SAVE FAILED — Delete: '+r.error.message);return false}
+  }
+  for(const c of pendingChanges){
+   if(pendingDeletes.some(d=>d.table===c.table&&d.id===c.id))continue;
+   const row=rowFor(c.table,c.id); if(!row)continue;
+   let r;
+   if(c.table==='profiles')r=await sb.from(c.table).update(row).eq('id',c.id);
+   else if(c.kind==='new')r=await sb.from(c.table).insert(row);
+   else r=await sb.from(c.table).update(row).eq('id',c.id);
+   if(r.error){alert('SAVE FAILED — '+c.table+': '+r.error.message);return false}
+  }
+  pendingDeletes=[];pendingChanges=[];unsavedChanges=false;
+  await loadOnlineData();
+  toastMsg('✓ All changes saved');
+  return true;
+ })();
+ try{return await saveInProgress}finally{saveInProgress=null}
+}
+async function save(table=null,id=null,kind=null){markUnsaved(table,id,kind);return true;}
+
+function uid(p){return crypto.randomUUID()}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function isOwner(){return current?.role==='WxRC Owner'}
+function isAdministrator(){return current && ['WxRC Owner','WxRC Administrator','WxRC Admin','Administrator'].includes(current.role)}
+function isModerator(){return current?.role==='WxRC Moderator'}
+function isManagement(){return isAdministrator()||isModerator()}
+function canEdit(){return isAdministrator()}
+function isGuest(){return current?.role==='WWE Universe'}
+
+function openSignup(){
+ if(!initSupabase()){alert('Online account creation is temporarily unavailable because the Supabase connection could not start.');return}
+ openModal('Create WxRC Account',`<div class="sub" style="margin-bottom:14px">Choose the account type and enter the 6-digit registration code created by the WxRC Owner.</div><form id="codeForm"><div class="field"><label>ROLE</label><select name="role"><option value="WxRC Superstar">WxRC Superstar</option><option value="WxRC Moderator">WxRC Moderator</option><option value="WxRC Administrator">WxRC Administrator</option></select></div>${formField('code')}<button class="btn primary full">Continue</button></form>`);
+ codeForm.onsubmit=async e=>{e.preventDefault();let code=codeForm.code.value.trim(),role=codeForm.role.value;if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {data,error}=await sb.rpc('verify_role_signup_code',{role_input:role,code_input:code});if(error||!data){alert('Incorrect registration code for '+role+'.');return}signupDetails(role,code)};
+}
+function signupDetails(requestedRole,verifiedCode){
+ openModal('Create '+requestedRole+' Account',`<div class="sub" style="margin-bottom:14px">Requested role: <b>${esc(requestedRole)}</b>. Management roles are finalized securely by the server.</div><form id="signupForm">${formField('displayName')}${formField('username')}${formField('email','','email')}${formField('password','','password')}<button class="btn primary full">Create Account</button></form>`);
+ signupForm.onsubmit=async e=>{e.preventDefault();let f=signupForm;let {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{username:f.username.value.trim(),display_name:f.displayName.value.trim(),requested_role:requestedRole,registration_code:verifiedCode}}});if(error){alert(error.message);return}if(!data.session){closeModal();alert('Account created. Check your email if confirmation is enabled. The server will finalize the selected role after verification.');return}await finishAuth(data.user);closeModal();enter()};
+}
+
+const WXRC_DATA_CACHE='wxrcDataCacheV533';
+function saveDataCache(){
+ try{
+  localStorage.setItem(WXRC_DATA_CACHE,JSON.stringify({
+   savedAt:Date.now(),
+   superstars:db.superstars,championships:db.championships,champions:db.champions,
+   championHistory:db.championHistory,shows:db.shows,news:db.news,
+   announcements:db.announcements,awards:db.awards,hallOfFame:db.hallOfFame,
+   users:db.users,transactions:db.transactions,gimmickSubmissions:db.gimmickSubmissions,
+   activityLog:db.activityLog,superstarManagement:db.superstarManagement,
+   showMatches:db.showMatches,
+   permissions:db.permissions,careerHighlights:db.careerHighlights,appSettings:db.appSettings
+  }));
+ }catch(e){console.warn('WxRC cache save failed',e)}
+}
+function loadDataCache(){
+ try{
+  const c=JSON.parse(localStorage.getItem(WXRC_DATA_CACHE)||'null');
+  if(!c)return false;
+  ['superstars','championships','champions','championHistory','shows','news','announcements','awards','hallOfFame',
+   'users','transactions','gimmickSubmissions','activityLog','superstarManagement','showMatches','permissions','careerHighlights'
+  ].forEach(k=>{if(Array.isArray(c[k]))db[k]=c[k]});
+  if(c.appSettings)db.appSettings=c.appSettings;
+  return true;
+ }catch(e){console.warn('WxRC cache load failed',e);return false}
+}
+
+async function finishAuth(user){
+ let {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+ if(error){console.error('Profile load:',error);alert('Your account signed in, but the WxRC profile could not be loaded: '+error.message);return false}
+ if(!p){alert('Your login exists, but no WxRC profile is linked to it. Contact a WxRC Owner.');return false}
+ current={id:p.id,username:p.username||'',displayName:p.display_name||'User',role:p.role||'WxRC Superstar',superstarId:p.superstar_id||''};
+ return true;
+}
+async function login(){
+ loginError.textContent='Signing in...';
+ if(!initSupabase()){loginError.textContent='Online login is temporarily unavailable. Check your Wi-Fi/certificate connection or use Guest mode.';return}
+ try{
+  let {data,error}=await sb.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});
+  if(error){loginError.textContent=error.message;return}
+  if(!data?.user){loginError.textContent='Login failed: no user returned.';return}
+  if(await finishAuth(data.user)){loginError.textContent='';enter();loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.error('Background data load:',e))}
+ }catch(e){console.error(e);loginError.textContent='Login error: '+(e?.message||e)}
+}
+async function guestLogin(){
+ current={id:'guest',displayName:'Guest',role:'WWE Universe'};
+ loadDataCache();
+ enter();
+ if(initSupabase()) loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.warn('Guest online refresh unavailable',e));
+ else toastMsg('Guest mode · offline/cached data');
+}
+function enter(){page='News';document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');renderNav();render()}
+function openLoginScreen(){document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden');loginError.textContent='';loginPass.value=''}
+async function logout(){if(unsavedChanges&&!confirm('You have unsaved changes. Log out without saving them?'))return;if(initSupabase())try{await sb.auth.signOut()}catch(e){} current={id:'guest',displayName:'Guest',role:'WWE Universe'};loadDataCache();enter();if(initSupabase())loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.warn('Guest online refresh unavailable',e))}
+const tableMap={superstars:'superstars',championships:'championships',champions:'champions',championHistory:'champion_history',shows:'shows',transactions:'transactions',gimmickSubmissions:'gimmick_submissions'};
+const WXRC_META_KEY='wxrcMetaV5';
+let meta=JSON.parse(localStorage.getItem(WXRC_META_KEY)||'{"announcements":[],"activity":[],"maintenance":false,"maintenanceMessage":"WxRC is currently under maintenance."}');
+function saveMeta(){localStorage.setItem(WXRC_META_KEY,JSON.stringify(meta))}
+function logActivity(t){meta.activity.unshift({id:uid('a'),text:t,date:new Date().toISOString()});meta.activity=meta.activity.slice(0,100);saveMeta()}
+function dashboard(){
+ let next=(db.shows||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0],ann=(db.announcements||[])[0];
+ view.innerHTML=`<div class="hero"><span class="badge red">MANAGEMENT CENTER</span><h1>WxRC Dashboard</h1><div class="muted">Everything important in one place.</div></div><div class="grid" style="margin-top:16px">${[['Superstars',db.superstars.length],['Champions',db.champions.length],['Gimmick Submissions',(db.gimmickSubmissions||[]).length],['Shows',db.shows.length]].map(x=>`<div class="card stat"><span class="muted">${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</div>${ann?`<div class="card" style="margin-top:16px"><span class="badge red">${ann.pinned?'PINNED':'ANNOUNCEMENT'}</span><h3>${esc(ann.title)}</h3><div>${esc(ann.content)}</div></div>`:''}<div class="card" style="margin-top:16px"><h3>Next Show</h3>${next?`<b>${esc(next.name)}</b><div class="sub">${esc(next.date||'')} ${esc(next.time||'')} · ${esc(next.venue||'')}</div>`:empty()}</div>`}
+function searchCenter(){view.innerHTML=`<div class="sectionHead"><div><h2>Search</h2><div class="sub">Search Superstars and Championships.</div></div></div><div class="field"><input id="globalSearch" placeholder="Search WxRC..."></div><div id="searchResults"></div>`;globalSearch.oninput=()=>{let q=globalSearch.value.toLowerCase().trim(),ss=db.superstars.filter(x=>(x.name+' '+(x.nickname||'')+' '+(x.brand||'')).toLowerCase().includes(q)),tt=db.championships.filter(x=>(x.name+' '+(x.brand||'')).toLowerCase().includes(q));searchResults.innerHTML=!q?'':`<div class="list">${ss.map(x=>`<div class="row" onclick="profile('${x.id}')"><b>${esc(x.name)}</b><span class="badge">${esc(x.brand||'')}</span></div>`).join('')}${tt.map(x=>`<div class="row"><b>${esc(x.name)}</b><span class="badge gold">Championship</span></div>`).join('')}</div>`}}
+async function onlineActivity(action){if(!isOwner())return;await sb.from('activity_log').insert({actor_id:current.id,actor_name:current.displayName,action})}
+async function management(){
+ if(!isManagement()){go('Dashboard');return}
+ view.innerHTML=`<div class="sectionHead"><div><h2>Management</h2><div class="sub">Shared online WxRC administration.</div></div></div>
+ <div class="settingsGroup"><h3>Announcements</h3><form id="annForm">${formField('title')}${formField('text')}<label><input name="pinned" type="checkbox"> Pin announcement</label><button class="btn primary full" style="margin-top:12px">Publish</button></form><div class="list">${(db.announcements||[]).map(a=>`<div class="row"><div><b>${esc(a.title)}</b><div class="sub">${esc(a.content)}</div></div><button class="btn small danger" onclick="deleteAnnouncement('${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Awards</h3><form id="awardForm">${formField('name')}${formField('winner')}${formField('award_year',new Date().getFullYear(),'number')}${formField('notes')}<div class="field"><label>PHOTO</label><input name="imageFile" type="file" accept="image/*"></div><button class="btn primary full">Add Award</button></form><div class="list">${(db.awards||[]).map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="sub">${esc(a.winner||'')} · ${esc(a.award_year||'')}</div></div><button class="btn small danger" onclick="deleteShared('awards','${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Hall of Fame</h3><form id="hofForm">${formField('name')}${formField('inducted_year',new Date().getFullYear(),'number')}${formField('notes')}<div class="field"><label>PHOTO</label><input name="imageFile" type="file" accept="image/*"></div><button class="btn primary full">Induct</button></form><div class="list">${(db.hallOfFame||[]).map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="sub">Class of ${esc(a.inducted_year||'')}</div></div><button class="btn small danger" onclick="deleteShared('hall_of_fame','${a.id}')">Delete</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><h3>Activity Log</h3>${(db.activityLog||[]).slice(0,30).map(a=>`<div class="row"><div>${esc(a.action)}<div class="sub">${esc(a.actor_name||'Management')} · ${new Date(a.created_at).toLocaleString()}</div></div></div>`).join('')||empty()}</div>
+ <div class="settingsGroup"><h3>Superstar Management</h3><div class="sub">Availability, attendance, warnings/strikes, transfers and gallery are stored in the shared Superstar Management table. Open a Superstar profile to manage these records in the next UI pass.</div></div>
+ <div class="settingsGroup"><h3>Backup</h3><button class="btn" onclick="exportBackup()">Export JSON Backup</button></div>`;
+ annForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('announcements').insert({title:annForm.title.value.trim(),content:annForm.text.value.trim(),pinned:annForm.pinned.checked});if(r.error)return alert(r.error.message);await onlineActivity('Published announcement: '+annForm.title.value.trim());await loadOnlineData();management()};
+ awardForm.onsubmit=async e=>{e.preventDefault();let image='';if(awardForm.imageFile.files[0])image=await cropImageFile(awardForm.imageFile.files[0],1);let r=await sb.from('awards').insert({name:awardForm.name.value.trim(),winner:awardForm.winner.value.trim()||null,award_year:Number(awardForm.award_year.value)||null,notes:awardForm.notes.value.trim()||null,image:image||null});if(r.error)return alert(r.error.message);await onlineActivity('Added award: '+awardForm.name.value.trim());await loadOnlineData();management()};
+ hofForm.onsubmit=async e=>{e.preventDefault();let image='';if(hofForm.imageFile.files[0])image=await cropImageFile(hofForm.imageFile.files[0],1);let r=await sb.from('hall_of_fame').insert({name:hofForm.name.value.trim(),inducted_year:Number(hofForm.inducted_year.value)||null,notes:hofForm.notes.value.trim()||null,image:image||null});if(r.error)return alert(r.error.message);await onlineActivity('Hall of Fame induction: '+hofForm.name.value.trim());await loadOnlineData();management()};
+}
+async function deleteAnnouncement(id){if(!confirm('Delete this announcement?'))return;let r=await sb.from('announcements').delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted an announcement');await loadOnlineData();management()}
+async function deleteShared(table,id){if(!confirm('Delete this item?'))return;let r=await sb.from(table).delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted '+table+' item');await loadOnlineData();management()}
+function exportBackup(){const b=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),db,meta},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='WxRC-backup.json';a.click()}
+function awardsPage(){
+ view.innerHTML=`<div class="sectionHead"><div><h2>Awards</h2><div class="sub">WxRC annual and special awards.</div></div></div><div class="superGrid">${(db.awards||[]).map(a=>`<div class="superCard">${a.image?`<img src="${esc(a.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">🏆</div>`}<div class="shade"></div><div class="info"><span class="badge gold">${esc(a.award_year||'AWARD')}</span><h3>${esc(a.name)}</h3><div class="titleName">${esc(a.winner||'TBA')}</div><div class="sub">${esc(a.notes||'')}</div></div></div>`).join('')||empty()}</div>`}
+function hallOfFamePage(){
+ view.innerHTML=`<div class="sectionHead"><div><h2>Hall of Fame</h2><div class="sub">WxRC Hall of Fame inductees.</div></div></div><div class="superGrid">${(db.hallOfFame||[]).map(a=>`<div class="superCard">${a.image?`<img src="${esc(a.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">★</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CLASS OF ${esc(a.inducted_year||'')}</span><h3>${esc(a.name)}</h3><div class="sub">${esc(a.notes||'')}</div></div></div>`).join('')||empty()}</div>`}
+
+const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Management','Settings'];
+const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
+function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
+function renderNav(){let allowed=nav.filter(n=>!['Settings','Management'].includes(n)||isManagement());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
+function go(n){
+ if(page===n)return;
+ page=n;
+ pageTitle.textContent=n;
+ view.innerHTML='<div class="card"><div class="sub">Loading…</div></div>';
+ requestAnimationFrame(()=>{renderNav();render()});
+}
+function render(){if(!current)current={id:'guest',displayName:'Guest',role:'WWE Universe'};pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();authTopBtn.textContent=isGuest()?'Log In':'Log Out';authTopBtn.onclick=isGuest()?openLoginScreen:logout;const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
+function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+
+async function refreshApp(){
+ toastMsg('Refreshing...');
+ try{await loadOnlineData();renderNav();render();toastMsg('Updated')}
+ catch(e){console.error(e);toastMsg('Refresh failed')}
+}
+function cropImageFile(file,aspect=1){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{
+   const source=new Image();source.onerror=reject;source.onload=()=>{
+    const overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;background:#07090d;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';
+    overlay.innerHTML=`<div style="width:min(96vw,560px);display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:center"><button id="cropCancel" class="btn ghost">Cancel</button><b>Adjust Photo</b><button id="cropDone" class="btn primary">Use Photo</button></div><div id="cropStage" style="width:100%;aspect-ratio:${aspect};position:relative;overflow:hidden;background:#000;border-radius:20px;touch-action:none"><img id="cropImg" src="${reader.result}" draggable="false" style="position:absolute;left:50%;top:50%;max-width:none;user-select:none;pointer-events:none"><div style="position:absolute;inset:0;border:2px solid rgba(255,255,255,.85);border-radius:20px;pointer-events:none"></div></div><div class="sub" style="text-align:center">Drag to reposition • Pinch to zoom</div><div style="display:flex;gap:8px"><button id="cropReset" class="btn ghost" style="flex:1">Reset</button><button id="cropMinus" class="btn ghost">−</button><button id="cropPlus" class="btn ghost">＋</button></div></div>`;
+    document.body.appendChild(overlay);const stage=overlay.querySelector('#cropStage'),im=overlay.querySelector('#cropImg');let scale=1,x=0,y=0,last=null,pinch=null;
+    const fit=()=>{const r=stage.getBoundingClientRect();scale=Math.max(r.width/source.width,r.height/source.height);x=0;y=0;draw()};
+    const draw=()=>{im.style.width=source.width+'px';im.style.height=source.height+'px';im.style.transform=`translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`};
+    const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+    stage.ontouchstart=e=>{e.preventDefault();if(e.touches.length===1)last={x:e.touches[0].clientX,y:e.touches[0].clientY};if(e.touches.length===2)pinch={d:dist(e.touches),s:scale}};
+    stage.ontouchmove=e=>{e.preventDefault();if(e.touches.length===1&&last){x+=e.touches[0].clientX-last.x;y+=e.touches[0].clientY-last.y;last={x:e.touches[0].clientX,y:e.touches[0].clientY};draw()}else if(e.touches.length===2&&pinch){scale=Math.max(.03,pinch.s*dist(e.touches)/pinch.d);draw()}};
+    stage.ontouchend=()=>{last=null;pinch=null};
+    overlay.querySelector('#cropMinus').onclick=()=>{scale*=.9;draw()};overlay.querySelector('#cropPlus').onclick=()=>{scale*=1.1;draw()};overlay.querySelector('#cropReset').onclick=fit;
+    overlay.querySelector('#cropCancel').onclick=()=>{overlay.remove();resolve(null)};
+    overlay.querySelector('#cropDone').onclick=()=>{const r=stage.getBoundingClientRect(),outW=Math.min(1200,Math.max(500,Math.round(r.width*2))),outH=Math.round(outW/aspect),factor=outW/r.width,c=document.createElement('canvas');c.width=outW;c.height=outH;const ctx=c.getContext('2d');ctx.translate(outW/2+x*factor,outH/2+y*factor);ctx.scale(scale*factor,scale*factor);ctx.drawImage(source,-source.width/2,-source.height/2);const data=c.toDataURL('image/jpeg',.88);overlay.remove();resolve(data)};
+    requestAnimationFrame(fit);
+   };source.src=reader.result;
+  };reader.readAsDataURL(file);
+ });
+}
+async function prepareCropInput(input,aspect=1,previewId=''){
+ const file=input?.files?.[0];if(!file)return null;
+ const data=await cropImageFile(file,aspect);
+ if(!data){input.value='';delete input.dataset.cropped;return null}
+ input.dataset.cropped=data;
+ if(previewId){
+  const old=document.getElementById(previewId);
+  if(old){const im=document.createElement('img');im.id=previewId;im.className='thumb';im.style.cssText='width:84px;height:84px;object-fit:cover';im.src=data;old.replaceWith(im)}
+ }
+ return data;
+}
+
+function news(){
+ const items=(db.news||[]).slice().sort((a,b)=>new Date(b.publishedAt||0)-new Date(a.publishedAt||0));
+ const featured=items[0],rest=items.slice(1);
+ const anns=(db.announcements||[]).slice().sort((a,b)=>Number(b.pinned||0)-Number(a.pinned||0)).slice(0,3);
+ const fmt=d=>{try{return d?new Date(d).toLocaleString():''}catch(e){return d||''}};
+ const article=n=>`<div class="card" style="overflow:hidden">${n.image?`<img class="cover" src="${n.image}" alt="">`:''}<div class="sub">${fmt(n.publishedAt)}${n.author?' • '+esc(n.author):''}</div><h3 style="margin:8px 0;font-size:22px">${esc(n.title)}</h3><div style="white-space:pre-wrap;line-height:1.6">${esc(n.content)}</div>${canEdit()?`<div class="rowActions" style="margin-top:14px"><button class="btn small blue" onclick="editNews('${n.id}')">Edit</button><button class="btn small danger" onclick="deleteNews('${n.id}')">Delete</button></div>`:''}</div>`;
+ view.innerHTML=`<div class="sectionHead"><div><span class="badge red">WWE x ROBLOX COMMUNITY</span><h2 style="margin:8px 0 2px">WxRC News</h2><div class="sub">The latest community news, show results, injuries, transfers and official announcements.</div></div>${canEdit()?`<button class="btn primary" onclick="editNews()">+ Add News</button>`:''}</div>
+ ${anns.length?`<div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><h3>Official Announcements</h3></div>${anns.map(a=>`<div class="row"><div>${a.pinned?'<span class="badge red" style="margin-right:8px">PINNED</span>':''}<b>${esc(a.title||'Announcement')}</b><div class="sub" style="margin-top:5px">${esc(a.content||'')}</div></div></div>`).join('')}</div>`:''}
+ ${featured?`<div class="sectionHead"><h3>Featured Story</h3><span class="badge red">LATEST</span></div><div class="card" style="overflow:hidden;padding:0">${featured.image?`<img src="${featured.image}" alt="" style="width:100%;max-height:420px;object-fit:cover;display:block">`:''}<div style="padding:20px"><div class="sub">${fmt(featured.publishedAt)}${featured.author?' • '+esc(featured.author):''}</div><h2 style="margin:8px 0 12px;font-size:clamp(25px,5vw,40px)">${esc(featured.title)}</h2><div style="white-space:pre-wrap;line-height:1.65;font-size:16px">${esc(featured.content)}</div>${canEdit()?`<div class="rowActions" style="margin-top:16px"><button class="btn small blue" onclick="editNews('${featured.id}')">Edit</button><button class="btn small danger" onclick="deleteNews('${featured.id}')">Delete</button></div>`:''}</div></div>`:`<div class="card"><h3>No news yet</h3><div class="sub">Official WxRC updates will appear here.</div></div>`}
+ ${upcomingEventsHTML()}
+ ${rest.length?`<div class="sectionHead"><div><h3>Latest News</h3><div class="sub">More stories from WxRC.</div></div><span class="badge">${rest.length} ${rest.length===1?'STORY':'STORIES'}</span></div><div class="grid">${rest.map(article).join('')}</div>`:''}`;
+}
+function editNews(id=''){
+ if(!canEdit())return;
+ const o=(db.news||[]).find(x=>x.id===id)||{};
+ openModal(id?'Edit News':'Add News',`<form id="newsForm">${formField('title',o.title||'')}<div class="field"><label>NEWS</label><textarea name="content" rows="7" required>${esc(o.content||'')}</textarea></div><div class="field"><label>IMAGE</label><input name="imageFile" type="file" accept="image/*" onchange="prepareCropInput(this,16/9)"><div class="sub" style="margin-top:6px">Choose a photo from your device (max 1.5 MB).</div></div>${o.image?`<div class="field"><label>CURRENT IMAGE</label><img src="${o.image}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px"><label style="display:flex;gap:8px;margin-top:8px"><input type="checkbox" name="removeImage"> Remove image</label></div>`:''}<button class="btn primary full">${id?'Save Changes':'Publish News'}</button></form>`);
+ newsForm.onsubmit=async e=>{e.preventDefault();let image=o.image||null;if(newsForm.removeImage?.checked)image=null;let file=newsForm.imageFile.files[0];if(file){image=newsForm.imageFile.dataset.cropped||await prepareCropInput(newsForm.imageFile,16/9);if(!image)return}let row={title:newsForm.title.value.trim(),content:newsForm.content.value.trim(),image,author:current.displayName||current.username||'WxRC Management'};let res=id?await sb.from('news').update(row).eq('id',id).select().single():await sb.from('news').insert(row).select().single();if(res.error){alert(res.error.message);return}let n=res.data;if(id){let i=db.news.findIndex(x=>x.id===id);if(i>=0)db.news[i]={id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at}}else db.news.unshift({id:n.id,title:n.title,content:n.content,author:n.author||'',image:n.image||'',publishedAt:n.published_at||n.created_at});closeModal();news();toastMsg(id?'News updated':'News published')};
+}
+async function deleteNews(id){
+ if(!canEdit()||!confirm('Delete this news post?'))return;
+ let {error}=await sb.from('news').delete().eq('id',id);if(error){alert(error.message);return}
+ db.news=db.news.filter(x=>x.id!==id);news();toastMsg('News deleted');
+}
+function home(){let s=stats();view.innerHTML=`<div class="hero"><span class="badge red">WWE x ROBLOX COMMUNITY</span><h1>Community Control Center</h1><div class="muted">View the roster, champions, shows and WWE x Roblox Community information in one place.</div></div><div class="grid">${[['Superstars',s.superstars],['Current Champions',s.champions],['Shows',s.shows]].map(x=>`<div class="card stat"><span class="muted">${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</div><div class="sectionHead"><h2>Current Champions</h2></div>${champList(false)}`}
+function img(src,name){return src?`<img class="thumb" src="${esc(src)}">`:`<div class="thumb avatar">${esc(name?.[0]||'?')}</div>`}
+function superstars(){view.innerHTML=`<div class="sectionHead"><div><h2>Superstars</h2><div class="sub">WWE x Roblox Community roster profiles.</div></div>${canEdit()?`<button class="btn primary" onclick="editSuperstar()">+ Add Superstar</button>`:''}</div><div class="superGrid">${db.superstars.map(s=>{const mg=(db.superstarManagement||[]).find(m=>m.superstar_id===s.id);const availability=mg?.availability||s.status||'Active';return `<div class="superCard" onclick="profile('${s.id}')">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge ${availability==='Active'?'green':availability==='Injured'?'red':''}">${esc(availability)}</span><h3>${esc(s.name)}</h3><div class="sub">${esc(s.nickname||'WWE Superstar')} · ${brandHTML(s.brand||'Unassigned')}</div>${canEdit()?`<div style="margin-top:10px"><button class="btn small blue" onclick="event.stopPropagation();editSuperstar('${s.id}')">✎ Edit Superstar</button> <button class="btn small danger" onclick="event.stopPropagation();del('superstars','${s.id}')">Delete</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
+function roster(){let brands=['RAW','SmackDown','NXT','Unassigned'];view.innerHTML=`<div class="sectionHead"><div><h2>Roster</h2><div class="sub">Superstars grouped by brand.</div></div></div>${brands.map(b=>`<div class="sectionHead"><h3>${brandHTML(b)}</h3><span class="badge">${db.superstars.filter(s=>(s.brand||'Unassigned')===b).length}</span></div><div class="list">${db.superstars.filter(s=>(s.brand||'Unassigned')===b).map(s=>`<div class="row"><div class="rowMain">${img(s.image,s.name)}<div><b>${esc(s.name)}</b><div class="sub">${esc(s.status)}</div></div></div><button class="btn small" onclick="profile('${s.id}')">Profile</button></div>`).join('')||empty()}</div>`).join('')}`}
+function daysSince(d){if(!d)return 0;let a=new Date(d+'T00:00:00'),b=new Date();a.setHours(0,0,0,0);b.setHours(0,0,0,0);return Math.max(0,Math.floor((b-a)/86400000)+1)}
+function mdy(d){if(!d)return '—';let p=d.split('-');if(p.length!==3)return d;return `${Number(p[1])}/${Number(p[2])}/${p[0]}`}
+
+function submitGimmick(){
+ view.innerHTML=`<div class="hero"><span class="badge red">WxRC SUPERSTAR</span><h1>Submit a Gimmick</h1><div class="muted">Fill in your Superstar information for WxRC Staff.</div></div><div class="card" style="margin-top:16px"><form id="gimmickForm">${formField('name')}${formField('nickname')}<div class="field"><label>BRAND</label><select name="brand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>STATUS</label><select name="status"><option>Active</option><option>Inactive</option></select></div>${formField('finisher')}${formField('signature')}${formField('theme')}${formField('debut')}${formField('height')}${formField('weight')}${formField('notes')}<div class="field"><label>SUPERSTAR PHOTO</label><input name="imageFile" type="file" accept="image/*" onchange="prepareCropInput(this,1)"><div class="sub" style="margin-top:6px">Choose a photo from your device (max 1.5 MB).</div></div><button class="btn primary full">Submit Gimmick</button></form></div>`;
+ gimmickForm.onsubmit=async e=>{
+  e.preventDefault();let f=gimmickForm;
+  if(isGuest()){alert('Please create an account or log in to submit a gimmick.');return}
+  let image=null;let file=f.imageFile.files[0];if(file){image=f.imageFile.dataset.cropped||await prepareCropInput(f.imageFile,1);if(!image)return}
+  let {error}=await sb.from('gimmick_submissions').insert({user_id:current.id,name:f.name.value.trim(),nickname:f.nickname.value.trim()||null,brand:f.brand.value||null,status:f.status.value||null,finisher:f.finisher.value.trim()||null,signature:f.signature.value.trim()||null,theme:f.theme.value.trim()||null,debut:f.debut.value||null,height:f.height.value.trim()||null,weight:f.weight.value.trim()||null,notes:f.notes.value.trim()||null,image});
+  if(error){alert(error.message);return}view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('News')">Done</button></div>`;
+ };
+}
+
+
+// Discord announcements are queued locally and sent only after Supabase saves succeed.
+let wxrcDiscordEvents=[];
+function wxrcQueueDiscord(titleId,previousId,newId,reason=''){
+ const title=db.championships.find(t=>t.id===titleId);
+ if(!title || previousId===newId)return;
+ wxrcDiscordEvents=wxrcDiscordEvents.filter(e=>e.titleId!==titleId);
+ wxrcDiscordEvents.push({eventId:crypto.randomUUID(),titleId,previousId:previousId||null,newId:newId||null,reason:reason||null});
+}
+async function wxrcSendDiscordEvents(){
+ if(!wxrcDiscordEvents.length)return;
+ const events=[...wxrcDiscordEvents];
+ for(const event of events){
+  try{
+   const {data,error}=await sb.functions.invoke('championship-discord',{body:event});
+   if(error || !data?.ok)throw Error(error?.message||data?.error||'Discord delivery failed');
+   wxrcDiscordEvents=wxrcDiscordEvents.filter(e=>e.eventId!==event.eventId);
+  }catch(err){console.error('Discord announcement pending',err);toastMsg('Saved, but Discord notification failed. Contact an administrator.');}
+ }
+}
+function wxrcChampionHistory(c,dateLost){
+ const superstar=db.superstars.find(s=>s.id===c.superstarId);
+ const h={id:uid('h'),superstarId:c.superstarId,superstarName:superstar?.name||'Unknown Superstar',titleId:c.titleId,dateWon:c.dateWon,dateLost, image:c.image||'',notes:c.notes||''};
+ db.championHistory.push(h);markUnsaved('champion_history',h.id,'new');
+}
+function editChampion(id=''){
+ if(!canEdit())return;
+ const existing=db.champions.find(c=>c.id===id);
+ const options=db.championships.map(t=>`<option value="${esc(t.id)}" ${existing?.titleId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+ const stars=db.superstars.map(st=>`<option value="${esc(st.id)}" ${existing?.superstarId===st.id?'selected':''}>${esc(st.name)}</option>`).join('');
+ if(!options||!stars)return alert('Create a Championship and Superstar first.');
+ openModal(existing?'Edit Champion':'Set New Champion',`<form id="champForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${options}</select></div><div class="field"><label>SUPERSTAR</label><select name="superstarId" required>${stars}</select></div>${formField('dateWon',existing?.dateWon||new Date().toISOString().slice(0,10),'date')}${formField('notes',existing?.notes||'')}<button class="btn primary full">Save Champion</button></form>`);
+ champForm.onsubmit=e=>{
+  e.preventDefault();const f=champForm,titleId=f.titleId.value,starId=f.superstarId.value,dateWon=f.dateWon.value;
+  if(!dateWon)return alert('Choose a date.');
+  const currentHolder=activeChampionFor(titleId);
+  const prevId=currentHolder?.superstarId||null;
+  if(existing && existing.titleId!==titleId){alert('To move a champion to another title, vacate the old title first.');return;}
+  if(currentHolder && currentHolder.id!==existing?.id){wxrcChampionHistory(currentHolder,dateWon);db.champions=db.champions.filter(c=>c.id!==currentHolder.id);pendingChanges=pendingChanges.filter(c=>!(c.table==='champions'&&c.id===currentHolder.id));pendingDeletes.push({table:'champions',id:currentHolder.id});}
+  if(existing && existing.superstarId!==starId){wxrcChampionHistory(existing,dateWon);existing.superstarId=starId;existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
+  else if(existing){existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
+  else {const item={id:uid('c'),titleId,superstarId:starId,dateWon,notes:f.notes.value.trim(),image:''};db.champions.push(item);markUnsaved('champions',item.id,'new');}
+  if(prevId!==starId)wxrcQueueDiscord(titleId,prevId,starId);
+  saveDataCache();closeModal();champions();
+ };
+}
+function vacateChampionship(titleId){
+ if(!canEdit())return;const c=activeChampionFor(titleId);if(!c)return;
+ const title=db.championships.find(t=>t.id===titleId);
+ openModal('Vacate Championship',`<div class="sub">${esc(title?.name||'Championship')}</div><form id="vacateForm"><div class="field"><label>REASON</label><select name="reason"><option>Injury</option><option>Retirement</option><option>Suspension</option><option>Other</option></select></div><div class="field hidden" id="vacateOtherWrap"><label>OTHER REASON</label><input name="other" maxlength="200"></div><button class="btn danger full">Confirm Vacate Championship</button></form>`);
+ vacateForm.reason.onchange=()=>vacateOtherWrap.classList.toggle('hidden',vacateForm.reason.value!=='Other');
+ vacateForm.onsubmit=e=>{e.preventDefault();const reason=vacateForm.reason.value==='Other'?vacateForm.other.value.trim():vacateForm.reason.value;if(!reason)return alert('Enter a reason.');if(!confirm('Vacate this championship?'))return;
+  wxrcChampionHistory(c,new Date().toISOString().slice(0,10));db.champions=db.champions.filter(x=>x.id!==c.id);pendingChanges=pendingChanges.filter(x=>!(x.table==='champions'&&x.id===c.id));pendingDeletes.push({table:'champions',id:c.id});unsavedChanges=true;wxrcQueueDiscord(titleId,c.superstarId,null,reason);saveDataCache();closeModal();champions();toastMsg('Vacated locally — save in Settings to publish');};
+}
+function deleteChampion(id){
+ if(!canEdit())return;const c=db.champions.find(x=>x.id===id);if(!c)return;
+ if(!confirm('Remove this champion? This will vacate the title.'))return;
+ vacateChampionship(c.titleId);
+}
+
+function activeChampionFor(titleId){return db.champions.find(c=>c.titleId===titleId)}
+function reignDays(start,end){
+ if(!start)return 0;
+ const a=new Date(start+'T00:00:00');
+ const b=end?new Date(end+'T00:00:00'):new Date();
+ return Math.max(0,Math.floor((b-a)/86400000));
+}
+function reignTime(start,end){
+ const d=reignDays(start,end);
+ if(d<1)return '<1 DAY';
+ return `${d} ${d===1?'DAY':'DAYS'}`;
+}
+function champList(actions=true){let currentTitles=db.championships.map(t=>({t,c:activeChampionFor(t.id)})).filter(x=>x.c);return `<div class="titleGrid">${currentTitles.map(({t,c})=>{let s=db.superstars.find(x=>x.id===c.superstarId);return `<div class="titleCard" onclick="championshipHistory('${t.id}')">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">${esc(s?.name?.[0]||'?')}</div>`}<div class="shade"></div><div class="info"><span class="badge ${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'red':'gold'}">${String(s?.name||'').toUpperCase()==='VACANT CHAMPIONSHIP'?'VACANT CHAMPIONSHIP':'CHAMPION'}</span><h3>${esc(s?.name||'Unknown Superstar')}</h3><div class="titleName">${esc(t.name)}</div><div class="sub">${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:18px;margin-top:3px">${reignTime(c.dateWon)}</div>${actions&&canEdit()?`<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap"><button class="btn small blue" onclick="event.stopPropagation();editChampion('${c.id}')">✎ Edit Champion</button><button class="btn small danger" data-vacate-title="${t.id}" onclick="event.stopPropagation();vacateChampionship('${t.id}')">VACATE CHAMPIONSHIP</button><button class="btn small danger" onclick="event.stopPropagation();deleteChampion('${c.id}')">− Delete Champion</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
+function champions(){view.innerHTML=`<div class="sectionHead"><div><h2>Champions</h2><div class="sub">Current title holders. Tap a champion to see the full title history.</div></div>${canEdit()?`<button class="btn primary" onclick="editChampion()">+ Set New Champion</button>`:''}</div>${champList()}`}
+function backToChampions(){
+ page='Champions';
+ pageTitle.textContent='Champions';
+ renderNav();
+ champions();
+ try{window.scrollTo(0,0)}catch(e){}
+}
+let openChampionshipHistoryId=null;
+function championshipHistory(titleId){
+ openChampionshipHistoryId=titleId;
+ page='Championship History';
+ pageTitle.textContent='Championship History';
+ renderNav();
+ const t=db.championships.find(x=>x.id===titleId); const c=activeChampionFor(titleId); const s=c?db.superstars.find(x=>x.id===c.superstarId):null;
+ let hist=(db.championHistory||[]).filter(h=>h.titleId===titleId).sort((a,b)=>(b.dateWon||'').localeCompare(a.dateWon||''));
+ let rows=[];
+ if(c)rows.push({id:c.id,name:s?.name||'Unknown Superstar',dateWon:c.dateWon,dateLost:'',current:true,notes:c.notes||''});
+ hist.forEach(h=>rows.push({id:h.id,name:h.superstarName||db.superstars.find(x=>x.id===h.superstarId)?.name||'Unknown Superstar',dateWon:h.dateWon,dateLost:h.dateLost,current:false,notes:h.notes||''}));
+ view.innerHTML=`<div class="sectionHead"><div><button type="button" class="btn ghost small" id="championsBackBtn">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+ const backBtn=document.getElementById('championsBackBtn');
+ if(backBtn){
+  backBtn.addEventListener('click',function(e){
+   e.preventDefault();
+   e.stopPropagation();
+   backToChampions();
+  });
+ }
+}
+function deleteHistory(id,titleId){
+ const x=(db.championHistory||[]).find(h=>h.id===id);if(!x)return;
+ if(!confirm('Delete this championship history entry? It will be removed after Save Changes.'))return;
+ db.championHistory=(db.championHistory||[]).filter(h=>h.id!==id);
+ pendingChanges=pendingChanges.filter(c=>!(c.table==='champion_history'&&c.id===id));
+ if(!pendingDeletes.some(d=>d.table==='champion_history'&&d.id===id))pendingDeletes.push({table:'champion_history',id});
+ unsavedChanges=true;
+ saveDataCache();
+ championshipHistory(titleId);
+ toastMsg('History deletion queued — go to Settings to save');
+}
+function editHistory(id,titleId){
+ const h=(db.championHistory||[]).find(x=>x.id===id); if(!h)return;
+ openModal('Edit Championship History',`<form id="hform">${formField('dateWon',h.dateWon||'')}${formField('dateLost',h.dateLost||'')}${formField('notes',h.notes||'')}<div class="sub" style="margin:-5px 0 14px">Add opponent, PPV/event, location or any other reign information.</div><button class="btn primary full">Save History</button></form>`);
+ hform.onsubmit=e=>{e.preventDefault();h.dateWon=hform.dateWon.value;h.dateLost=hform.dateLost.value;h.notes=hform.notes.value.trim();markUnsaved('champion_history',h.id,'edit');saveDataCache();closeModal();championshipHistory(titleId);toastMsg('History updated — go to Settings to save')};
+}
+function prettyDate(d){if(!d)return '—';let x=new Date(d+'T00:00:00');return x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}
+function championships(){view.innerHTML=`<div class="sectionHead"><div><h2>Championships</h2><div class="sub">Open a title to see its current champion and complete title history.</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("championships",["name","brand","status","image"])'>+ Add</button>`:''}</div><div class="titleGrid">${db.championships.map(t=>{const c=db.champions.find(x=>x.titleId===t.id),ss=c?db.superstars.find(x=>x.id===c.superstarId):null;return `<div class="titleCard" onclick="championshipDetail('${t.id}')">${t.image?`<img src="${esc(t.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">◆</div>`}<div class="shade"></div><div class="info"><span class="badge gold">${esc(t.brand||'CHAMPIONSHIP')}</span><h3>${esc(t.name)}</h3><div class="titleName">${esc(ss?.name||'Vacant')}</div>${canEdit()?`<div style="margin-top:10px"><button class="btn small blue" onclick='event.stopPropagation();editGeneric("championships",["name","brand","status","image"],"${t.id}")'>Edit</button></div>`:''}</div></div>`}).join('')||empty()}</div>`}
+async function showControl(id){
+ let s=db.shows.find(x=>x.id===id);if(!s)return;
+ let {data:matches,error}=await sb.from('show_matches').select('*').eq('show_id',id).order('created_at');
+ if(error)matches=(db.showMatches||[]).filter(x=>x.show_id===id);
+ openModal('Show Control · '+s.name,`<div class="kv"><div><b>Status</b>${esc(s.status||'—')}</div><div><b>Date</b>${esc(s.date||'—')}</div><div><b>Venue</b>${esc(s.venue||'—')}</div></div><div class="settingsGroup"><h3>Match Card / Results</h3>${isAdministrator()?`<form id="matchForm">${formField('matchName')}${formField('participants')}${formField('result')}<label><input name="championship" type="checkbox"> Championship Match</label><button class="btn primary full" style="margin-top:10px">Add Match</button></form>`:''}${(matches||[]).map(m=>`<div class="row"><div><b>${esc(m.name)}</b><div class="sub">${esc(m.participants||'')}${m.result?' · '+esc(m.result):''}${m.championship?' · Championship':''}</div></div>${isAdministrator()?`<button class="btn small danger" onclick="deleteShowMatch('${m.id}','${id}')">Delete</button>`:''}</div>`).join('')||empty()}</div>${isAdministrator()?`<button id="finishShow" class="btn danger full">Finish Show</button>`:''}`);
+ if(isAdministrator()){
+  matchForm.onsubmit=async e=>{e.preventDefault();let r=await sb.from('show_matches').insert({show_id:id,name:matchForm.matchName.value.trim(),participants:matchForm.participants.value.trim(),result:matchForm.result.value.trim(),championship:matchForm.championship.checked});if(r.error)return alert(r.error.message);await onlineActivity('Added match to '+s.name);showControl(id)};
+  finishShow.onclick=async()=>{if(!confirm('Finish this show?'))return;let r=await sb.from('shows').update({status:'Completed'}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Completed show: '+s.name);await loadOnlineData();closeModal();shows()};
+ }
+}
+async function deleteShowMatch(mid,sid){if(!confirm('Delete this match?'))return;let r=await sb.from('show_matches').delete().eq('id',mid);if(r.error)return alert(r.error.message);showControl(sid)}
+
+function showNameHTML(name=''){return String(name).toLowerCase().includes('smackdown')?`<span style="color:#2f80ff">${esc(name)}</span>`:esc(name)}
+function brandHTML(name=''){const n=String(name||'');const k=n.toLowerCase();if(k==='smackdown')return `<span style="color:#2f80ff;font-weight:900">${esc(n)}</span>`;if(k==='raw')return `<span style="color:#e32636;font-weight:900">${esc(n)}</span>`;return esc(n)}
+function brandBadgeHTML(name=''){const n=String(name||'Unassigned'),k=n.toLowerCase();const fg=k==='smackdown'?'#2f80ff':k==='raw'?'#e32636':'#111';return `<span class="badge" style="background:#f5f5f5;border-color:#d8d8d8;color:${fg};font-weight:900">${esc(n)}</span>`}
+function shows(){const rows=(db.shows||[]).filter(x=>String(x.status||'').toLowerCase()!=='completed').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));view.innerHTML=`<div class="sectionHead"><div><h2>Shows & Match Cards</h2><div class="sub">RAW, SmackDown, PLEs, match cards and results.</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("shows",["name","date","time","status","venue","image"])'>+ Add Show</button>`:''}</div>${upcomingEventsHTML()}<div class="grid">${rows.map(x=>`<div class="card" onclick="showControl('${x.id}')" style="cursor:pointer">${x.image?`<img class="cover" src="${esc(x.image)}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin-bottom:10px">`:''}<span class="badge ${String(x.status).toLowerCase()==='completed'?'':'red'}">${esc(x.status||'UPCOMING')}</span><h3 style="margin-top:9px">${showNameHTML(x.name)}</h3><div class="sub">${esc(x.date||'')} ${esc(x.time||'')} · ${esc(x.venue||'')}</div>${canEdit()?`<div style="margin-top:10px"><button class="btn small blue" onclick='event.stopPropagation();editGeneric("shows",["name","date","time","status","venue","image"],"${x.id}")'>Edit</button></div>`:''}</div>`).join('')||empty()}</div>`}
+function matches(){generic('Matches','Book and track matches.','matches',['name','show','participants','stipulation','status','winner'])}
+function rivalries(){generic('Rivalries','Manage active and completed rivalries.','rivalries',['name','members','status','notes'])}
+function storylines(){generic('Storylines','Keep creative plans and storyline notes.','storylines',['name','members','status','notes'])}
+function contracts(){generic('Contracts','Manage Superstar and Staff contracts.','contracts',['name','person','value','startDate','endDate','status'])}
+function coins(){let balances={};db.transactions.forEach(t=>balances[t.person]=(balances[t.person]||0)+Number(t.amount||0));view.innerHTML=`<div class="sectionHead"><div><h2>WWE Coins</h2><div class="sub">Community economy and transaction history.</div></div>${canEdit()?`<button class="btn primary" onclick="editTransaction()">+ Transaction</button>`:''}</div><div class="grid">${Object.entries(balances).map(([p,b])=>`<div class="card stat"><span class="muted">${esc(p)}</span><strong>${b}</strong><span class="badge gold">WWE COINS</span></div>`).join('')||empty()}</div><div class="sectionHead"><h3>Transactions</h3></div><div class="list">${db.transactions.slice().reverse().map(t=>`<div class="row"><div><b>${esc(t.person)}</b><div class="sub">${esc(t.note||'Transaction')} · ${esc(t.date||'')}</div></div><b>${Number(t.amount)>0?'+':''}${Number(t.amount)}</b></div>`).join('')||empty()}</div>`}
+function editUser(id){
+ const u=(db.users||[]).find(x=>x.id===id);if(!u)return;
+ if(!isManagement())return;
+ const roles=isOwner()?['WxRC Superstar','WxRC Staff','WxRC Moderator','WxRC Administrator','WxRC Owner']:['WxRC Superstar','WxRC Staff','WxRC Moderator','WxRC Administrator'];
+ const superstarOptions=['<option value="">Not linked</option>'].concat((db.superstars||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(s=>`<option value="${esc(s.id)}" ${u.superstarId===s.id?'selected':''}>${esc(s.name)}</option>`)).join('');
+ openModal('Edit Account',`<form id="editAccountForm">${formField('displayName',u.displayName||'')}${formField('username',u.username||'')}<div class="field"><label>ROLE</label><select name="role">${roles.map(r=>`<option value="${esc(r)}" ${normalizeRole(u.role)===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div><div class="field"><label>LINKED SUPERSTAR</label><select name="superstarId">${superstarOptions}</select></div><button class="btn primary full">Save Account</button></form>`);
+ const f=document.getElementById('editAccountForm');
+ f.onsubmit=e=>{e.preventDefault();
+  const displayName=f.displayName.value.trim(),username=f.username.value.trim(),role=f.role.value,superstarId=f.superstarId.value;
+  if(!displayName||!username){alert('Display name and username are required.');return}
+  if(!isOwner()&&normalizeRole(u.role)==='WxRC Owner'){alert('Only the WxRC Owner can edit an Owner account.');return}
+  u.displayName=displayName;u.username=username;u.role=role;u.superstarId=superstarId;
+  if(current&&current.id===u.id){current.displayName=displayName;current.username=username;current.role=role;current.superstarId=superstarId}
+  markUnsaved('profiles',u.id,'edit');saveDataCache();closeModal();renderNav();settings();toastMsg('Account updated — go to Settings to save');
+ };
+}
+
+async function settings(){
+ if(!isManagement()){go('News');return}
+ let subs=(db.gimmickSubmissions||[]).filter(g=>(g.reviewStatus||'Pending')==='Pending');
+ let cfg=db.appSettings;
+ let signupCode=cfg?.signup_code||'';
+ let roleCodes=[];
+ if(isOwner()){let rc=await sb.from('registration_codes').select('*').order('role');if(!rc.error)roleCodes=rc.data||[]}
+ view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Online Owner / Admin management.</div></div></div>
+ <div class="settingsGroup" style="border:1px solid ${unsavedChanges?'#d83b3b':'#2a303b'}"><h3>${unsavedChanges?'● '+unsavedCount()+' Unsaved Changes':'✓ Changes Saved'}</h3><div class="sub">${unsavedChanges?'Your edits are only in this session. Save them to Supabase before logging out.':'There are no pending app changes.'}</div><button id="saveAllChangesBtn" class="btn primary full" style="margin-top:12px" ${unsavedChanges?'':'disabled'}>Save Changes</button></div>
+ <div class="settingsGroup"><h3>Try-Out Sign Up Code</h3><div class="sub">Change the 6-digit code required when a new Superstar creates an account.</div><form id="signupCodeForm" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" value="${esc(signupCode)}" required></div><button class="btn primary">Change Code</button></form></div>
+ ${isOwner()?`<div class="settingsGroup"><h3>Registration Codes</h3><div class="sub">Only the WxRC Owner can view and change management registration codes.</div>${roleCodes.map(r=>`<form class="roleCodeForm" data-role="${esc(r.role)}"><div class="field"><label>${esc(r.role)}</label><input name="code" inputmode="numeric" maxlength="6" value="${esc(r.code)}"></div><button class="btn small blue">Change Code</button></form>`).join('')}</div>`:''}
+ <div class="settingsGroup"><h3>Account Management</h3><div class="sub">Owner/Admin can change account roles and linked Superstars.</div><div class="list">${db.users.map(u=>`<div class="row"><div><b>${esc(u.displayName)}</b><div class="sub">@${esc(u.username)} - ${esc(normalizeRole(u.role))}</div></div><button class="btn small blue" onclick="editUser('${u.id}')">Edit Account</button></div>`).join('')||empty()}</div></div>
+ <div class="settingsGroup"><div class="sectionHead" style="margin-top:0"><div><h3>Gimmick Submissions</h3><div class="sub">Online submissions.</div></div><span class="badge">${subs.length}</span></div><div class="list">${subs.slice().reverse().map(g=>`<div class="row"><div><b>${esc(g.name||'Unnamed Superstar')}</b><div class="sub">${esc(g.nickname||'')} - ${esc(g.brand||'')} · ${esc(g.reviewStatus||'Pending')}</div></div><div class="rowActions"><button class="btn small" onclick="viewGimmick('${g.id}')">View</button><button class="btn small blue" onclick="useGimmick('${g.id}')">Add / Update</button><button class="btn small" onclick="reviewGimmick('${g.id}','Approved')">Accept</button><button class="btn small" onclick="reviewGimmick('${g.id}','Rejected')">Reject</button><button class="btn small danger" onclick="deleteGimmick('${g.id}')">Delete</button></div></div>`).join('')||empty()}</div></div>`;
+ document.querySelectorAll('.roleCodeForm').forEach(f=>f.onsubmit=async e=>{e.preventDefault();let code=f.code.value.trim(),role=f.dataset.role;if(!/^\d{6}$/.test(code))return alert('Code must contain exactly 6 numbers.');let r=await sb.from('registration_codes').update({code,updated_at:new Date().toISOString()}).eq('role',role);if(r.error)return alert(r.error.message);toastMsg('Code updated')});
+ const saveBtn=document.getElementById('saveAllChangesBtn');
+ if(saveBtn)saveBtn.onclick=async()=>{saveBtn.disabled=true;saveBtn.textContent='Saving...';const ok=await commitAllChanges();if(ok){renderNav();render()}else{saveBtn.disabled=false;saveBtn.textContent='Save Changes'}};
+ signupCodeForm.onsubmit=async e=>{e.preventDefault();let code=signupCodeForm.code.value.trim();if(!/^\d{6}$/.test(code)){alert('The code must contain exactly 6 numbers.');return}let {error}=await sb.from('app_settings').update({signup_code:code}).eq('id',1);if(error){alert(error.message);return}toastMsg('Try-Out code changed')};
+}
+function viewGimmick(id){
+ let g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;
+ openModal(g.name||'Gimmick Submission',`${g.image?`<img src="${esc(g.image)}" style="width:100%;max-height:420px;object-fit:cover;border-radius:18px;margin-bottom:16px">`:''}<div class="kv">${[['Nickname',g.nickname],['Brand',g.brand],['Status',g.status],['Finisher',g.finisher],['Signature',g.signature],['Theme Song',g.theme],['Debut',g.debut],['Height',g.height],['Weight',g.weight]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div>${g.notes?`<div class="field"><label>NOTES</label><div>${esc(g.notes)}</div></div>`:''}`);
+}
+async function useGimmick(id){if(!canEdit())return;const g=db.gimmickSubmissions.find(x=>x.id===id);if(!g)return;const existing=db.superstars.find(x=>(x.name||'').trim().toLowerCase()===(g.name||'').trim().toLowerCase());const row={name:g.name||'Unnamed Superstar',nickname:g.nickname||null,brand:g.brand||null,status:g.status||'Active',finisher:g.finisher||null,signature:g.signature||null,theme:g.theme||null,debut:g.debut||null,height:g.height||null,weight:g.weight||null,image:g.image||null};const result=existing?await sb.from('superstars').update(row).eq('id',existing.id).select().single():await sb.from('superstars').insert({...row,wins:0,losses:0}).select().single();if(result.error)return alert('SUPERSTAR SAVE FAILED — '+result.error.message);const saved=result.data,mapped={...saved,nickname:saved.nickname||'',brand:saved.brand||'',status:saved.status||'',finisher:saved.finisher||'',signature:saved.signature||'',theme:saved.theme||'',debut:saved.debut||'',height:saved.height||'',weight:saved.weight||'',image:saved.image||''};if(existing){let i=db.superstars.findIndex(x=>x.id===existing.id);if(i>=0)db.superstars[i]=mapped}else db.superstars.push(mapped);db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);saveDataCache();page='Superstars';renderNav();superstars();toastMsg(existing?'✓ Superstar updated':'✓ Superstar added');sb.from('gimmick_submissions').delete().eq('id',id).then(({error})=>error&&console.error(error));onlineActivity((existing?'Updated Superstar from gimmick: ':'Added Superstar from gimmick: ')+(g.name||'')).catch(()=>{})}
+async function reviewGimmick(id,status){if(!canEdit())return;let r=await sb.from('gimmick_submissions').update({review_status:status}).eq('id',id);if(r.error)return alert(r.error.message);db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);saveDataCache();settings();toastMsg(status==='Approved'?'✓ Gimmick accepted':'Gimmick rejected');onlineActivity(status+' gimmick submission').catch(()=>{})}
+async function deleteGimmick(id){if(!canEdit()||!confirm('Delete this gimmick submission?'))return;let {error}=await sb.from('gimmick_submissions').delete().eq('id',id);if(error){alert(error.message);return}db.gimmickSubmissions=db.gimmickSubmissions.filter(x=>x.id!==id);render()}
+function normalizeRole(r){return ({'Administrator':'WxRC Administrator','WxRC Admin':'WxRC Administrator','WWE Staff':'WxRC Staff','WWE Superstar':'WxRC Superstar'})[r]||r}
+function generic(title,desc,key,fields){view.innerHTML=`<div class="sectionHead"><div><h2>${title}</h2><div class="sub">${desc}</div></div>${canEdit()?`<button class="btn primary" onclick='editGeneric("${key}",${JSON.stringify(fields)})'>+ Add</button>`:''}</div><div class="list">${db[key].map(o=>`<div class="row"><div class="rowMain">${o.image?`<img class="thumb" src="${esc(o.image)}">`:''}<div><b>${esc(o.name||o.person||'Item')}</b><div class="sub">${fields.filter(f=>f!=='name'&&f!=='image').map(f=>esc(o[f]||'')).filter(Boolean).join(' · ')}</div></div></div>${canEdit()?`<div class="rowActions"><button class="btn small blue" onclick='editGeneric("${key}",${JSON.stringify(fields)},"${o.id}")'>Edit</button><button class="btn small danger" onclick="del('${key}','${o.id}')">Delete</button></div>`:''}</div>`).join('')||empty()}</div>`}
+function empty(){return `<div class="empty">Nothing here yet.</div>`}
+function openModal(title,body){modalTitle.textContent=title;modalBody.innerHTML=body;modal.classList.remove('hidden')}
+function closeModal(){modal.classList.add('hidden')}
+function toastMsg(s){toast.textContent=s;toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),1700)}
+function formField(k,v='',type='text'){let label=k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase());if(k==='notes')return `<div class="field"><label>${label.toUpperCase()}</label><textarea name="${k}">${esc(v)}</textarea></div>`;if(['date','dateWon','startDate','endDate','debut'].includes(k))type='date';return `<div class="field"><label>${label.toUpperCase()}</label><input name="${k}" type="${type}" value="${esc(v)}"></div>`}
+
+function fileToDataURL(file){
+ return new Promise((resolve,reject)=>{
+  if(!file){resolve('');return}
+  const r=new FileReader();
+  r.onload=()=>resolve(r.result);
+  r.onerror=reject;
+  r.readAsDataURL(file);
+ });
+}
+function photoField(current='',label='PHOTO'){
+ return `<div class="field"><label>${label}</label><div style="display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:center">${current?`<img id="photoPreview" class="thumb" style="width:84px;height:84px" src="${esc(current)}">`:`<div id="photoPreview" class="thumb avatar" style="width:84px;height:84px;border-radius:12px">+</div>`}<div><input id="photoFile" name="photoFile" type="file" accept="image/*"><div class="sub" style="margin-top:5px">Choose a photo from your device.</div></div></div></div>`;
+}
+function bindPhotoPreview(){
+ const input=document.getElementById('photoFile');
+ if(!input)return;
+ input.onchange=async()=>{await prepareCropInput(input,1,'photoPreview')};
+}
+
+function editGeneric(key,fields,id=''){
+ let o=db[key].find(x=>x.id===id)||{};
+ openModal(`${id?'Edit':'Add'} ${key.replace(/s$/,'')}`,`<form id="gform">${fields.map(f=>f==='image'?photoField(o.image||'','PHOTO'):(key==='shows'&&f==='status'?`<div class="field"><label>STATUS</label><select name="status">${['Planned','On going','Delayed','Cancelled','Completed'].map(v=>`<option ${String(o.status||'Planned')===v?'selected':''}>${v}</option>`).join('')}</select></div>`:formField(f,o[f]||''))).join('')}<button class="btn primary full">Save</button></form>`);
+ bindPhotoPreview();
+ gform.onsubmit=async e=>{
+  e.preventDefault(); let x=id?o:{id:uid(key[0])};
+  for(const f of fields){
+   if(f==='image'){const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'')}
+   else x[f]=gform.elements[f].value.trim();
+  }
+  if(!id)db[key].push(x);const ok=await save(tableMap[key],x.id,id?'edit':'new');if(!ok){await loadOnlineData();render();return}closeModal();render();
+ };
+}
+function editSuperstar(id=''){
+ let o=db.superstars.find(x=>x.id===id)||{};
+ let fields=['name','nickname','brand','status','finisher','signature','theme','debut','height','weight','wins','losses'];
+ openModal(id?'Edit Superstar':'Add Superstar',`<form id="sform">${photoField(o.image||'','SUPERSTAR PHOTO')}<div class="two">${fields.map(f=>formField(f,o[f]??'',['wins','losses'].includes(f)?'number':'text')).join('')}</div><button class="btn primary full">Save Superstar</button></form>`);
+ bindPhotoPreview();
+ sform.onsubmit=async e=>{e.preventDefault();let x=id?o:{id:uid('s')};fields.forEach(f=>x[f]=sform.elements[f].value.trim());const file=document.getElementById('photoFile')?.files?.[0];x.image=file?(document.getElementById('photoFile').dataset.cropped||await prepareCropInput(document.getElementById('photoFile'),1)):(o.image||'');if(!id)db.superstars.push(x);const ok=await save('superstars',x.id,id?'edit':'new');if(!ok){await loadOnlineData();render();return}closeModal();render()};
+}
+async function manageSuperstar(id){
+ if(!isOwner())return;let s=db.superstars.find(x=>x.id===id),m=(db.superstarManagement||[]).find(x=>x.superstar_id===id)||{};
+ const arr=v=>Array.isArray(v)?v:[];let attendance=arr(m.attendance),warnings=arr(m.warnings),transfers=arr(m.transfers),gallery=arr(m.gallery);
+ openModal('Manage '+s.name,`<form id="smForm">
+ <div class="field"><label>AVAILABILITY</label><select name="availability">${['Active','Inactive','Injured','Suspended','Part-Time','Released'].map(v=>`<option ${m.availability===v?'selected':''}>${v}</option>`).join('')}</select></div>
+ <div class="settingsGroup"><h3>Attendance</h3><div class="two">${formField('attDate',new Date().toISOString().slice(0,10),'date')}<div class="field"><label>STATUS</label><select name="attStatus"><option>Present</option><option>Absent</option><option>Excused</option></select></div></div>${attendance.map((x,i)=>({x,i})).reverse().map(({x,i})=>`<div class="row"><div><b>${esc(x.date||'')}</b><div class="sub">${esc(x.status||'')}</div></div><button type="button" class="btn small danger delAttendance" data-index="${i}">Delete</button></div>`).join('')||empty()}<button type="button" id="addAttendance" class="btn small">+ Attendance</button></div>
+ <div class="settingsGroup"><h3>Warnings / Strikes</h3>${formField('warningReason')}<div class="two">${formField('warningDate',new Date().toISOString().slice(0,10),'date')}<div class="field"><label>TYPE</label><select name="warningType"><option>Warning</option><option>Strike</option></select></div></div>${warnings.map((x,i)=>({x,i})).reverse().map(({x,i})=>`<div class="row"><div><b>${esc(x.type||'Warning')}</b><div class="sub">${esc(x.reason||'')} · ${esc(x.date||'')}</div></div><button type="button" class="btn small danger delWarning" data-index="${i}">Delete</button></div>`).join('')||empty()}<button type="button" id="addWarning" class="btn small">+ Warning / Strike</button></div>
+ <div class="settingsGroup"><h3>Brand Transfer</h3><div class="two"><div class="field"><label>FROM</label><select name="fromBrand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>TO</label><select name="toBrand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div></div>${formField('transferDate',new Date().toISOString().slice(0,10),'date')}${transfers.map((x,i)=>({x,i})).reverse().map(({x,i})=>`<div class="row"><div><b>${esc(x.from||'')} → ${esc(x.to||'')}</b><div class="sub">${esc(x.date||'')}</div></div><button type="button" class="btn small danger delTransfer" data-index="${i}">Delete</button></div>`).join('')||empty()}<button type="button" id="addTransfer" class="btn small">+ Transfer</button></div>
+ <div class="settingsGroup"><h3>Gallery</h3><div class="sub">Additional image URLs for this Superstar.</div>${formField('galleryUrl')}<button type="button" id="addGallery" class="btn small">+ Add Image</button><div class="superGrid" style="margin-top:10px">${gallery.map(url=>`<img src="${esc(url)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px">`).join('')}</div></div>
+ <button class="btn primary full">Save Management Record</button></form>`);
+ const save=async()=>{let row={superstar_id:id,availability:smForm.availability.value,attendance,warnings,transfers,gallery};let r=m.id?await sb.from('superstar_management').update(row).eq('id',m.id):await sb.from('superstar_management').insert(row);if(r.error){alert(r.error.message);return false}if(!m.id){await loadOnlineData();m=(db.superstarManagement||[]).find(x=>x.superstar_id===id)||m}return true};
+ document.querySelectorAll('.delAttendance').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this Attendance record?'))return;attendance.splice(Number(b.dataset.index),1);if(await save())manageSuperstar(id)});
+ document.querySelectorAll('.delWarning').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this Warning / Strike?'))return;warnings.splice(Number(b.dataset.index),1);if(await save())manageSuperstar(id)});
+ document.querySelectorAll('.delTransfer').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this Brand Transfer record?'))return;transfers.splice(Number(b.dataset.index),1);if(await save())manageSuperstar(id)});
+ addAttendance.onclick=async()=>{attendance.push({date:smForm.attDate.value,status:smForm.attStatus.value});if(await save())manageSuperstar(id)};
+ addWarning.onclick=async()=>{if(!smForm.warningReason.value.trim())return;warnings.push({date:smForm.warningDate.value,type:smForm.warningType.value,reason:smForm.warningReason.value.trim()});if(await save())manageSuperstar(id)};
+ addTransfer.onclick=async()=>{let from=smForm.fromBrand.value,to=smForm.toBrand.value;transfers.push({date:smForm.transferDate.value,from,to});if(await save()){let r=await sb.from('superstars').update({brand:to}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Transferred '+s.name+' from '+from+' to '+to);await loadOnlineData();manageSuperstar(id)}};
+ addGallery.onclick=async()=>{let u=smForm.galleryUrl.value.trim();if(u){gallery.push(u);if(await save())manageSuperstar(id)}};
+ smForm.onsubmit=async e=>{e.preventDefault();if(await save()){await onlineActivity('Updated management record for '+s.name);await loadOnlineData();closeModal();profile(id)}};
+}
+
+// WxRC extended features: achievements and injuries.
+const WXRC_EXT_KEY='wxrcExtendedFeaturesV1';
+let ext={achievements:[],injuries:[]};
+function loadExt(){try{const x=JSON.parse(localStorage.getItem(WXRC_EXT_KEY)||'{}');ext={...ext,...x}}catch(e){}}
+function saveExt(){localStorage.setItem(WXRC_EXT_KEY,JSON.stringify(ext))}
+loadExt();
+function superstarName(id){return db.superstars.find(s=>s.id===id)?.name||'Superstar'}
+function achievementFor(id){return (ext.achievements||[]).filter(x=>x.superstarId===id)}
+function injuryFor(id){return (ext.injuries||[]).filter(x=>x.superstarId===id).sort((a,b)=>(b.from||'').localeCompare(a.from||''))}
+function achievementHighlightsFor(id){return achievementFor(id).map(x=>({name:x.name,count:Math.max(1,Number(x.count||1)),achievement:true,id:x.id}))}
+function addAchievement(superstarId){
+ const presets=['Money in the Bank Winner','Royal Rumble Winner','King of the Ring Winner','Queen of the Ring Winner','Elimination Chamber Winner','WrestleMania Main Event','Hall of Fame'];
+ openModal('Add Achievement',`<form id="achForm"><div class="field"><label>ACHIEVEMENT</label><select name="preset"><option value="">Custom...</option>${presets.map(x=>`<option>${esc(x)}</option>`).join('')}</select></div><div class="field"><label>CUSTOM NAME</label><input name="custom" placeholder="e.g. Money in the Bank Winner"></div><div class="field"><label>COUNT</label><input name="count" type="number" min="1" value="1"></div><div class="field"><label>DATE / YEAR</label><input name="date" placeholder="2027 or 2027-04-03"></div><button class="btn primary full">Add Achievement</button></form>`);
+ achForm.onsubmit=async e=>{e.preventDefault();const name=achForm.custom.value.trim()||achForm.preset.value;if(!name)return alert('Choose or enter an achievement.');const count=Math.max(1,Number(achForm.count.value||1));const item={id:uid('ach'),superstarId,name,count,date:achForm.date.value.trim()};if(!initSupabase())return alert('Supabase is not connected.');const r=await sb.from('superstar_achievements').insert({id:item.id,superstar_id:superstarId,name,reign_count:count,achievement_date:item.date||null});if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();closeModal();profile(superstarId);toastMsg('Achievement saved online')}
+}
+async function removeAchievement(superstarId,id){if(!confirm('Remove this achievement?'))return;if(initSupabase()){const r=await sb.from('superstar_achievements').delete().eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}ext.achievements=ext.achievements.filter(x=>x.id!==id);saveExt();profile(superstarId)}
+function manageInjuries(superstarId){
+ const s=db.superstars.find(x=>x.id===superstarId);if(!s)return;const rows=injuryFor(superstarId);
+ openModal('Injuries · '+s.name,`<form id="injForm"><div class="field"><label>INJURY / REASON</label><input name="reason" required></div><div class="two"><div class="field"><label>OUT SINCE</label><input name="from" type="date" required></div><div class="field"><label>EXPECTED RETURN</label><input name="expected" type="date"></div></div><button class="btn primary full">Add Injury</button></form><div class="settingsGroup"><h3>Injury History</h3>${rows.map(x=>`<div class="row"><div><b>${esc(x.reason)}</b><div class="sub">${esc(x.from)}${x.expected?' · Expected '+esc(x.expected):''}${x.returned?' · Returned '+esc(x.returned):' · ACTIVE'}</div></div><div class="rowActions">${!x.returned?`<button class="btn small blue" onclick="returnFromInjury('${superstarId}','${x.id}')">Returned</button>`:''}<button class="btn small danger" onclick="deleteInjury('${superstarId}','${x.id}')">Delete</button></div></div>`).join('')||empty()}</div>`);
+ injForm.onsubmit=async e=>{e.preventDefault();const item={id:uid('inj'),superstarId,reason:injForm.reason.value.trim(),from:injForm.from.value,expected:injForm.expected.value,returned:''};ext.injuries.push(item);saveExt();if(initSupabase()){const r=await sb.from('superstar_injuries').insert({id:item.id,superstar_id:superstarId,reason:item.reason,out_since:item.from,expected_return:item.expected||null});if(r.error)return alert('Supabase: '+r.error.message)}closeModal();manageInjuries(superstarId);toastMsg('Injury saved online')}
+}
+async function returnFromInjury(superstarId,id){const x=ext.injuries.find(v=>v.id===id);if(!x)return;x.returned=new Date().toISOString().slice(0,10);if(initSupabase()){const r=await sb.from('superstar_injuries').update({returned_on:x.returned}).eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}saveExt();manageInjuries(superstarId)}
+async function deleteInjury(superstarId,id){if(!confirm('Delete this injury record?'))return;if(initSupabase()){const r=await sb.from('superstar_injuries').delete().eq('id',id);if(r.error)return alert('Supabase: '+r.error.message)}ext.injuries=ext.injuries.filter(x=>x.id!==id);saveExt();manageInjuries(superstarId)}
+function championshipDetail(id){
+ const t=db.championships.find(x=>x.id===id);if(!t)return;const c=db.champions.find(x=>x.titleId===id),cs=c?db.superstars.find(x=>x.id===c.superstarId):null;const hist=(db.championHistory||[]).filter(x=>x.titleId===id);const all=[...hist.map(h=>({name:h.superstarName||superstarName(h.superstarId),from:h.dateWon,to:h.dateLost})),...(c?[{name:cs?.name||'Unknown',from:c.dateWon,to:'Present'}]:[])];
+ openModal(t.name,`${t.image?`<img src="${esc(t.image)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:16px;margin-bottom:14px">`:''}<span class="badge gold">${esc(t.brand||'CHAMPIONSHIP')}</span><h2 style="margin:10px 0">${esc(t.name)}</h2><div class="kv"><div><b>Current Champion</b>${esc(cs?.name||'Vacant')}</div><div><b>Status</b>${esc(t.status||'Active')}</div><div><b>Recorded Reigns</b>${all.length}</div><div><b>Current Reign</b>${c?esc(reignTime(c.dateWon)):'—'}</div></div><div class="settingsGroup"><h3>Title History</h3>${all.slice().reverse().map(x=>`<div class="row"><div><b>${esc(x.name)}</b><div class="sub">${esc(x.from||'—')} — ${esc(x.to||'Present')}</div></div></div>`).join('')||empty()}</div><button class="btn full" onclick="closeModal();championshipHistory('${id}')">Open Full Championship History</button>`)
+}
+function upcomingEventsHTML(){const today=new Date().toISOString().slice(0,10);const rows=(db.shows||[]).filter(x=>(x.date||'')>=today&&String(x.status||'').toLowerCase()!=='completed').sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(0,4);return `<div class="settingsGroup"><h3>Upcoming Events</h3>${rows.map(x=>`<div class="row" onclick="showControl('${x.id}')" style="cursor:pointer"><div><b>${esc(x.name)}</b><div class="sub">${esc(x.date||'')} ${esc(x.time||'')} · ${esc(x.venue||'')}</div></div><span class="badge red">UPCOMING</span></div>`).join('')||`<div class="sub">No upcoming events.</div>`}</div>`}
+function careerTitleName(name=''){return String(name).replace(/Championship\b/gi,'Champion').trim()}
+function careerHighlightsFor(s){
+ const counts=new Map();
+ const add=(titleId)=>{if(titleId)counts.set(titleId,(counts.get(titleId)||0)+1)};
+ // Completed reigns + current reign are always shown automatically.
+ (db.championHistory||[]).filter(r=>r.superstarId===s.id||(!r.superstarId&&r.superstarName===s.name)).forEach(r=>add(r.titleId));
+ (db.champions||[]).filter(r=>r.superstarId===s.id).forEach(r=>add(r.titleId));
+ const manual=(db.careerHighlights||[]).filter(x=>x.superstar_id===s.id&&!x.hidden);
+ const out=[];
+ counts.forEach((count,titleId)=>{
+  const t=db.championships.find(v=>v.id===titleId),m=manual.find(x=>x.title_id===titleId);
+  out.push({titleId,name:m?.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m?.reign_count||count)),overrideId:m?.id||'',automatic:!m});
+ });
+ manual.filter(m=>!counts.has(m.title_id)).forEach(m=>{const t=db.championships.find(v=>v.id===m.title_id);out.push({titleId:m.title_id||'',name:m.name||careerTitleName(t?.name||'Championship'),count:Math.max(1,Number(m.reign_count||1)),overrideId:m.id||'',automatic:false})});
+ return out;
+}
+function careerHighlightsHTML(s){
+ const hs=[...careerHighlightsFor(s),...achievementHighlightsFor(s.id)];
+ return `<div style="border-top:1px solid #42484b;margin-top:28px;padding-top:30px;width:100%"><div style="font-size:clamp(18px,4vw,24px);font-weight:400;letter-spacing:.7px;margin-bottom:16px">Career Highlights</div>${hs.length?hs.map(x=>`<div style="font-size:clamp(20px,4.8vw,30px);font-weight:850;line-height:1.18;margin:0 0 12px;overflow-wrap:anywhere">${esc(x.name)}${x.count>1?` (x${x.count})`:''}${canEdit()&&x.achievement?`<div style="margin-top:7px"><button class="btn small danger" onclick="removeAchievement('${s.id}','${x.id}')">Remove</button></div>`:canEdit()&&x.overrideId?`<div style="display:flex;gap:7px;margin-top:7px"><button class="btn small blue" onclick="editCareerHighlight('${s.id}','${x.overrideId}')">Edit</button><button class="btn small danger" onclick="removeCareerHighlight('${s.id}','${x.overrideId}')">Remove</button></div>`:''}</div>`).join(''):`<div class="sub" style="font-size:16px;margin-bottom:12px">No Career Highlights yet.</div>`}${canEdit()?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn small" onclick="addCareerHighlight('${s.id}')">+ Championship</button><button class="btn small blue" onclick="addAchievement('${s.id}')">+ Achievement</button></div>`:''}</div>`
+}
+function editCareerHighlight(superstarId,highlightId){
+ const cur=(db.careerHighlights||[]).find(x=>x.id===highlightId);if(!cur)return;
+ const titles=(db.championships||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+ openModal('Edit Career Highlight',`<form id="careerForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${titles.map(t=>`<option value="${t.id}" ${t.id===cur.title_id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div><div class="field"><label>TIMES HELD / COUNT</label><input name="count" type="number" min="1" step="1" value="${Math.max(1,Number(cur.reign_count||1))}" required></div><button class="btn primary full">Save Highlight</button></form>`);
+ careerForm.onsubmit=async e=>{e.preventDefault();const titleId=careerForm.titleId.value,t=db.championships.find(x=>x.id===titleId),count=Math.max(1,Number(careerForm.count.value||1)),name=careerTitleName(t?.name||'Championship');const r=await sb.from('superstar_career_highlights').update({title_id:titleId,name,reign_count:count,hidden:false}).eq('id',highlightId);if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();closeModal();profile(superstarId);toastMsg('Career Highlight saved online')}
+}
+function addCareerHighlight(superstarId){
+ const s=db.superstars.find(x=>x.id===superstarId);if(!s)return;const titles=(db.championships||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));if(!titles.length)return alert('No Championships have been created yet.');
+ openModal('Add Career Highlight',`<form id="careerPickForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${titles.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></div><div class="field"><label>TIMES HELD / COUNT</label><input name="count" type="number" min="1" step="1" value="1" required></div><button class="btn primary full">Add Highlight</button></form>`);
+ careerPickForm.onsubmit=async e=>{e.preventDefault();const titleId=careerPickForm.titleId.value,count=Math.max(1,Number(careerPickForm.count.value||1)),t=db.championships.find(x=>x.id===titleId),name=careerTitleName(t?.name||'Championship'),existing=(db.careerHighlights||[]).find(x=>x.superstar_id===superstarId&&x.title_id===titleId);let r;if(existing)r=await sb.from('superstar_career_highlights').update({name,reign_count:count,hidden:false}).eq('id',existing.id);else r=await sb.from('superstar_career_highlights').insert({id:uid('ch'),superstar_id:superstarId,title_id:titleId,name,reign_count:count,hidden:false});if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();closeModal();profile(superstarId);toastMsg('Career Highlight saved online')}
+}
+async function removeCareerHighlight(superstarId,highlightId){if(!confirm('Remove this Career Highlight?'))return;const r=await sb.from('superstar_career_highlights').delete().eq('id',highlightId);if(r.error)return alert('Supabase: '+r.error.message);await loadOnlineData();profile(superstarId);toastMsg('Career Highlight removed')}
+function profile(id){let s=db.superstars.find(x=>x.id===id);if(!s)return;openModal(s.name,`<div class="profile">${s.image?`<img src="${esc(s.image)}">`:`<div class="avatar" style="width:130px;height:160px;border-radius:16px;font-size:45px">${esc(s.name[0])}</div>`}<div>${brandBadgeHTML(s.brand||'Unassigned')}<h2 style="margin-top:8px">${esc(s.name)}</h2><div class="muted">${esc(s.nickname||'WWE Superstar')}</div>${isOwner()?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn small blue" onclick="closeModal();manageSuperstar('${s.id}')">Manage Superstar</button><button class="btn small danger" onclick="manageInjuries('${s.id}')">Injuries</button></div>`:''}<div class="kv">${[['Status',s.status],['Finisher',s.finisher],['Signature',s.signature],['Theme Song',s.theme],['Debut',s.debut],['Height',s.height],['Weight',s.weight],['Record',`${s.wins||0}-${s.losses||0}`],['Current Titles',db.champions.filter(c=>c.superstarId===s.id).map(c=>db.championships.find(t=>t.id===c.titleId)?.name).filter(Boolean).join(', ')||'None'],['Recorded Reigns',db.championHistory.filter(x=>x.superstarId===s.id||x.superstarName===s.name).length]].map(x=>`<div><b>${x[0]}</b>${esc(x[1]||'—')}</div>`).join('')}</div></div></div>${careerHighlightsHTML(s)}`)}
+
+// Open the public site directly in News as WWE Universe; login is optional from the top-right button.
+window.addEventListener('load',()=>{
+ if(!current){
+  current={id:'guest',displayName:'Guest',role:'WWE Universe'};
+  loadDataCache();
+  enter();
+  if(initSupabase()) loadOnlineData().then(()=>{renderNav();render()}).catch(e=>console.warn('Public News refresh unavailable',e));
+ }
+});
+</script>
+</body>
+</html>
