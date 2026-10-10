@@ -214,6 +214,7 @@ async function commitAllChanges(){
   pendingDeletes=[];pendingChanges=[];unsavedChanges=false;
   await loadOnlineData();
   toastMsg('✓ All changes saved');
+  await wxrcSendDiscordEvents();
   return true;
  })();
  try{return await saveInProgress}finally{saveInProgress=null}
