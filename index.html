@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.5.0</title>
+<title>WWE x Roblox Community Online v5.5.1</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -416,6 +416,66 @@ function submitGimmick(){
   let {error}=await sb.from('gimmick_submissions').insert({user_id:current.id,name:f.name.value.trim(),nickname:f.nickname.value.trim()||null,brand:f.brand.value||null,status:f.status.value||null,finisher:f.finisher.value.trim()||null,signature:f.signature.value.trim()||null,theme:f.theme.value.trim()||null,debut:f.debut.value||null,height:f.height.value.trim()||null,weight:f.weight.value.trim()||null,notes:f.notes.value.trim()||null,image});
   if(error){alert(error.message);return}view.innerHTML=`<div class="card"><h2>Gimmick Submitted</h2><div class="sub" style="margin-top:8px">Your submission has been saved for WxRC Staff.</div><button class="btn primary" style="margin-top:15px" onclick="go('News')">Done</button></div>`;
  };
+}
+
+
+// Discord announcements are queued locally and sent only after Supabase saves succeed.
+let wxrcDiscordEvents=[];
+function wxrcQueueDiscord(titleId,previousId,newId,reason=''){
+ const title=db.championships.find(t=>t.id===titleId);
+ if(!title || previousId===newId)return;
+ wxrcDiscordEvents=wxrcDiscordEvents.filter(e=>e.titleId!==titleId);
+ wxrcDiscordEvents.push({eventId:crypto.randomUUID(),titleId,previousId:previousId||null,newId:newId||null,reason:reason||null});
+}
+async function wxrcSendDiscordEvents(){
+ if(!wxrcDiscordEvents.length)return;
+ const events=[...wxrcDiscordEvents];
+ for(const event of events){
+  try{
+   const {data,error}=await sb.functions.invoke('championship-discord',{body:event});
+   if(error || !data?.ok)throw Error(error?.message||data?.error||'Discord delivery failed');
+   wxrcDiscordEvents=wxrcDiscordEvents.filter(e=>e.eventId!==event.eventId);
+  }catch(err){console.error('Discord announcement pending',err);toastMsg('Saved, but Discord notification failed. Contact an administrator.');}
+ }
+}
+function wxrcChampionHistory(c,dateLost){
+ const superstar=db.superstars.find(s=>s.id===c.superstarId);
+ const h={id:uid('h'),superstarId:c.superstarId,superstarName:superstar?.name||'Unknown Superstar',titleId:c.titleId,dateWon:c.dateWon,dateLost, image:c.image||'',notes:c.notes||''};
+ db.championHistory.push(h);markUnsaved('champion_history',h.id,'new');
+}
+function editChampion(id=''){
+ if(!canEdit())return;
+ const existing=db.champions.find(c=>c.id===id);
+ const options=db.championships.map(t=>`<option value="${esc(t.id)}" ${existing?.titleId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+ const stars=db.superstars.map(st=>`<option value="${esc(st.id)}" ${existing?.superstarId===st.id?'selected':''}>${esc(st.name)}</option>`).join('');
+ if(!options||!stars)return alert('Create a Championship and Superstar first.');
+ openModal(existing?'Edit Champion':'Set New Champion',`<form id="champForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${options}</select></div><div class="field"><label>SUPERSTAR</label><select name="superstarId" required>${stars}</select></div>${formField('dateWon',existing?.dateWon||new Date().toISOString().slice(0,10),'date')}${formField('notes',existing?.notes||'')}<button class="btn primary full">Save Champion</button></form>`);
+ champForm.onsubmit=e=>{
+  e.preventDefault();const f=champForm,titleId=f.titleId.value,starId=f.superstarId.value,dateWon=f.dateWon.value;
+  if(!dateWon)return alert('Choose a date.');
+  const currentHolder=activeChampionFor(titleId);
+  const prevId=currentHolder?.superstarId||null;
+  if(existing && existing.titleId!==titleId){alert('To move a champion to another title, vacate the old title first.');return;}
+  if(currentHolder && currentHolder.id!==existing?.id){wxrcChampionHistory(currentHolder,dateWon);db.champions=db.champions.filter(c=>c.id!==currentHolder.id);pendingChanges=pendingChanges.filter(c=>!(c.table==='champions'&&c.id===currentHolder.id));pendingDeletes.push({table:'champions',id:currentHolder.id});}
+  if(existing && existing.superstarId!==starId){wxrcChampionHistory(existing,dateWon);existing.superstarId=starId;existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
+  else if(existing){existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
+  else {const item={id:uid('c'),titleId,superstarId:starId,dateWon,notes:f.notes.value.trim(),image:''};db.champions.push(item);markUnsaved('champions',item.id,'new');}
+  if(prevId!==starId)wxrcQueueDiscord(titleId,prevId,starId);
+  saveDataCache();closeModal();champions();
+ };
+}
+function vacateChampionship(titleId){
+ if(!canEdit())return;const c=activeChampionFor(titleId);if(!c)return;
+ const title=db.championships.find(t=>t.id===titleId);
+ openModal('Vacate Championship',`<div class="sub">${esc(title?.name||'Championship')}</div><form id="vacateForm"><div class="field"><label>REASON</label><select name="reason"><option>Injury</option><option>Retirement</option><option>Suspension</option><option>Other</option></select></div><div class="field hidden" id="vacateOtherWrap"><label>OTHER REASON</label><input name="other" maxlength="200"></div><button class="btn danger full">Confirm Vacate Championship</button></form>`);
+ vacateForm.reason.onchange=()=>vacateOtherWrap.classList.toggle('hidden',vacateForm.reason.value!=='Other');
+ vacateForm.onsubmit=e=>{e.preventDefault();const reason=vacateForm.reason.value==='Other'?vacateForm.other.value.trim():vacateForm.reason.value;if(!reason)return alert('Enter a reason.');if(!confirm('Vacate this championship?'))return;
+  wxrcChampionHistory(c,new Date().toISOString().slice(0,10));db.champions=db.champions.filter(x=>x.id!==c.id);pendingChanges=pendingChanges.filter(x=>!(x.table==='champions'&&x.id===c.id));pendingDeletes.push({table:'champions',id:c.id});unsavedChanges=true;wxrcQueueDiscord(titleId,c.superstarId,null,reason);saveDataCache();closeModal();champions();toastMsg('Vacated locally — save in Settings to publish');};
+}
+function deleteChampion(id){
+ if(!canEdit())return;const c=db.champions.find(x=>x.id===id);if(!c)return;
+ if(!confirm('Remove this champion? This will vacate the title.'))return;
+ vacateChampionship(c.titleId);
 }
 
 function activeChampionFor(titleId){return db.champions.find(c=>c.titleId===titleId)}
