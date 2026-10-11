@@ -93,8 +93,30 @@ input,select,textarea{border-color:#66502d;background:#090a0e}input:focus,select
 .championsSingleColumn .titleCard,.championsSingleColumn .titleCard>img{height:clamp(390px,55vw,530px);}
 .championsSingleColumn .titleCard .info{max-width:100%;overflow-wrap:anywhere;}
 @media(max-width:760px){.championsSingleColumn .titleCard,.championsSingleColumn .titleCard>img{height:480px;}}
+
+/* WxRC device layout: automatic by viewport, with optional per-device override. */
+.titleGrid.championsSingleColumn{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+@media(max-width:760px){.titleGrid.championsSingleColumn{grid-template-columns:minmax(0,1fr)!important;}}
+html[data-wxrc-device="mobile"] .titleGrid.championsSingleColumn{grid-template-columns:minmax(0,1fr)!important;}
+html[data-wxrc-device="pc"] .titleGrid.championsSingleColumn{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+.titleGrid.championsSingleColumn .titleCard{min-width:0;}
+.titleGrid.championsSingleColumn .titleCard .info{overflow-wrap:anywhere;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer>
+// Saved locally so each device can use its preferred layout independently.
+function wxrcGetDeviceLayout(){try{return localStorage.getItem('wxrc-device-layout')||'automatic'}catch(e){return 'automatic'}}
+function wxrcSetDeviceLayout(value){
+ if(!['automatic','mobile','pc'].includes(value))return;
+ try{localStorage.setItem('wxrc-device-layout',value)}catch(e){}
+ wxrcApplyDeviceLayout();
+}
+function wxrcApplyDeviceLayout(){
+ const value=wxrcGetDeviceLayout();
+ if(value==='automatic')document.documentElement.removeAttribute('data-wxrc-device');
+ else document.documentElement.setAttribute('data-wxrc-device',value);
+}
+wxrcApplyDeviceLayout();
+</script>
 </head>
 <body>
 <div id="login" class="login">
@@ -648,6 +670,7 @@ async function settings(){
  let roleCodes=[];
  if(isOwner()){let rc=await sb.from('registration_codes').select('*').order('role');if(!rc.error)roleCodes=rc.data||[]}
  view.innerHTML=`<div class="sectionHead"><div><h2>Settings</h2><div class="sub">Online Owner / Admin management.</div></div></div>
+ <div class="settingsGroup"><h3>Device Layout</h3><div class="sub">Choose how Champions cards appear. Automatic adapts to your screen size. Your choice is saved on this device.</div><div class="field" style="margin-top:12px"><label>DISPLAY MODE</label><select id="wxrcDeviceLayout" onchange="wxrcSetDeviceLayout(this.value)"><option value="automatic" ${wxrcGetDeviceLayout()==='automatic'?'selected':''}>Automatic (Recommended)</option><option value="mobile" ${wxrcGetDeviceLayout()==='mobile'?'selected':''}>Mobile Device — 1 column</option><option value="pc" ${wxrcGetDeviceLayout()==='pc'?'selected':''}>PC Device — 2 columns</option></select></div></div>
  <div class="settingsGroup" style="border:1px solid ${unsavedChanges?'#d83b3b':'#2a303b'}"><h3>${unsavedChanges?'● '+unsavedCount()+' Unsaved Changes':'✓ Changes Saved'}</h3><div class="sub">${unsavedChanges?'Your edits are only in this session. Save them to Supabase before logging out.':'There are no pending app changes.'}</div><button id="saveAllChangesBtn" class="btn primary full" style="margin-top:12px" ${unsavedChanges?'':'disabled'}>Save Changes</button></div>
  <div class="settingsGroup"><h3>Try-Out Sign Up Code</h3><div class="sub">Change the 6-digit code required when a new Superstar creates an account.</div><form id="signupCodeForm" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" value="${esc(signupCode)}" required></div><button class="btn primary">Change Code</button></form></div>
  ${isOwner()?`<div class="settingsGroup"><h3>Registration Codes</h3><div class="sub">Only the WxRC Owner can view and change management registration codes.</div>${roleCodes.map(r=>`<form class="roleCodeForm" data-role="${esc(r.role)}"><div class="field"><label>${esc(r.role)}</label><input name="code" inputmode="numeric" maxlength="6" value="${esc(r.code)}"></div><button class="btn small blue">Change Code</button></form>`).join('')}</div>`:''}
