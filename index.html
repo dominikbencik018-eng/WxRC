@@ -102,7 +102,8 @@ html[data-wxrc-device="pc"] .titleGrid.championsSingleColumn{grid-template-colum
 .titleGrid.championsSingleColumn .titleCard{min-width:0;}
 .titleGrid.championsSingleColumn .titleCard .info{overflow-wrap:anywhere;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script>
 // Saved locally so each device can use its preferred layout independently.
 function wxrcGetDeviceLayout(){try{return localStorage.getItem('wxrc-device-layout')||'automatic'}catch(e){return 'automatic'}}
 function wxrcSetDeviceLayout(value){
