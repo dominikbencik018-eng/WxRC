@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WWE x Roblox">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>WWE x Roblox Community Online v5.5.1</title>
+<title>WWE x Roblox Community Prestige v5.6.0</title>
 <style>
 :root{--bg:#07080b;--panel:#111319;--panel2:#181b22;--line:#292d37;--text:#f7f7f8;--muted:#9da3af;--red:#e11d2e;--blue:#2366ff;--green:#22c55e;--gold:#f6c453}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a1d25 0,#08090c 38%,#050608 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
@@ -53,6 +53,40 @@ input,select,textarea{width:100%;background:#0a0c10;color:#fff;border:1px solid 
 
 /* WxRC performance: defer offscreen card layout and painting. */
 .superGrid>.superCard,.titleGrid>.titleCard,.grid>.card{content-visibility:auto;contain-intrinsic-size:auto 300px}
+
+/* WxRC Prestige Edition — visual theme, preserving application behavior */
+:root{--bg:#060608;--panel:#0d0e12;--panel2:#171513;--line:#655024;--gold:#f5c95d;--muted:#b8ad99}
+body{background:radial-gradient(ellipse at 55% -15%,#483015 0%,#100e0d 36%,#050507 75%);background-attachment:fixed}
+.app{max-width:1480px}.shell{grid-template-columns:225px minmax(0,1fr)}
+.side{background:linear-gradient(180deg,#0a0908,#10100f 55%,#070708);border-right:1px solid #7c602d;box-shadow:6px 0 35px #0008}
+.side .brand{border-bottom:1px solid #6a5129;margin-bottom:17px}.brandText,.mark{color:#fff;text-shadow:0 2px 16px #e9b95055}
+.nav button{font-weight:750;letter-spacing:.2px;border:1px solid transparent;transition:background .15s,border-color .15s}
+.nav button.active,.nav button:hover{background:linear-gradient(110deg,#5b390c,#bd8c2b 50%,#5e3d12);border-color:#d9ae51;color:#fff;box-shadow:inset 0 1px #ffe29a88,0 4px 18px #d6a23b25}
+.content{padding:26px 28px 100px}.top{padding-bottom:14px;border-bottom:1px solid #60491f}
+#pageTitle,.sectionHead h2{color:#f5d581;text-transform:uppercase;font-size:clamp(23px,2.7vw,36px);font-weight:1000;letter-spacing:.9px;text-shadow:0 2px 14px #d9a83e55}
+.sectionHead{position:relative;min-height:95px;padding:22px 20px;margin:16px 0 18px;border:1px solid #8e6728;border-radius:15px;background:linear-gradient(100deg,#15100d 0%,#2e1c0e 47%,#090a0e 100%);overflow:hidden;box-shadow:inset 0 1px #f4c96644,0 12px 28px #0008}
+.sectionHead:before{content:'✦';position:absolute;right:25%;top:-75px;font-size:200px;color:#d6a44412;pointer-events:none}.sectionHead>*{position:relative;z-index:1}
+.hero{background:linear-gradient(115deg,#3d260c,#0e1017 65%,#291709);border-color:#bd9141;box-shadow:inset 0 1px #ffe29a55,0 14px 32px #0008}.hero h1{color:#f8d57c;text-shadow:0 2px 20px #e9af4466}
+.card,.settingsGroup,.row,.loginCard,.modalBox{background:linear-gradient(160deg,#17140f,#0c0e13 70%);border-color:#6d542b;box-shadow:inset 0 1px #f1c8751c,0 9px 24px #0005}
+.card:hover,.row:hover{border-color:#c59b46}.btn{transition:filter .15s,transform .15s}.btn:hover{filter:brightness(1.13)}.btn:active{transform:translateY(1px)}
+.btn.primary{color:#1c1306;background:linear-gradient(180deg,#ffe9a0,#e8b947 50%,#aa721b);border:1px solid #f9d781;text-shadow:0 1px #fff4;box-shadow:inset 0 1px #fff9,0 4px 15px #dba63e33}
+.btn.blue{background:linear-gradient(145deg,#2569dc,#12366f)}.badge.gold{background:linear-gradient(135deg,#6c4d15,#35260e);color:#ffe39b;border:1px solid #bd9243}
+.superCard,.titleCard{border:1px solid #9b712c;box-shadow:0 12px 24px #0009,inset 0 0 0 1px #ffd57d20;transition:transform .2s,border-color .2s}
+.superCard:hover,.titleCard:hover{transform:translateY(-3px);border-color:#ffdb80}
+.superCard .shade,.titleCard .shade{background:linear-gradient(transparent,#08080b 88%)}
+.superCard h3,.titleCard h3{color:#ffdf90;text-transform:uppercase;text-shadow:0 2px 9px #000}
+.superGrid{grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}.titleGrid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.superCard{min-height:315px}.superCard img{height:315px}.titleCard{min-height:330px}.titleCard>img{height:330px}
+input,select,textarea{border-color:#66502d;background:#090a0e}input:focus,select:focus,textarea:focus{border-color:#e9b95a;box-shadow:0 0 0 2px #e9b95a30}
+.historyList{background:#101116;color:#f5f0e7;border:1px solid #8a692f}.historyRow{border-bottom-color:#55462f}.historyName{color:#f5d17a}.historyDays{color:#c0b5a3}
+.userchip{border-color:#7c5d29;background:#19140d}.stat strong{color:#ffdf86}.loginCard{border-color:#b18b44}
+.wxrc-ceremony{position:relative;overflow:hidden;background:radial-gradient(circle at 50% -20%,#80581980,transparent 60%),linear-gradient(140deg,#231a0e,#08090d);border:1px solid #b28a43;border-radius:18px;padding:26px;margin:12px 0 18px;text-align:center}
+.wxrc-ceremony .wxrc-icon{font-size:40px;color:#ffdb7a}.wxrc-ceremony h2{font-size:clamp(28px,4vw,46px);color:#f7d581;letter-spacing:2px;text-shadow:0 3px 18px #ffc65a55;margin:6px 0}.wxrc-ceremony p{color:#c7bca8;margin:4px 0}
+.wxrc-honor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:15px}
+.wxrc-honor{background:linear-gradient(155deg,#21180c,#090a0f 70%);border:1px solid #a27a31;border-radius:15px;overflow:hidden;text-align:center;box-shadow:0 12px 26px #0008}
+.wxrc-honor img{width:100%;height:235px;object-fit:cover;display:block}.wxrc-honor .fallback{height:235px;display:grid;place-items:center;font-size:70px;background:radial-gradient(circle,#6d4b21,#090a0f)}
+.wxrc-honor .honor-info{padding:15px}.wxrc-honor h3{color:#f9d57d;text-transform:uppercase;font-size:17px}.wxrc-honor .honor-tag{color:#f4cb72;font-size:12px;font-weight:900;letter-spacing:1px}.wxrc-honor .sub{margin-top:8px}
+@media(max-width:760px){.content{padding:14px 12px 100px}.sectionHead{padding:17px 14px;min-height:85px;flex-wrap:wrap}.superGrid,.titleGrid,.wxrc-honor-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.superCard,.superCard img{height:270px;min-height:270px}.titleCard,.titleCard>img{height:270px;min-height:270px}.superCard .info,.titleCard .info{left:10px;right:10px;bottom:10px}.superCard h3,.titleCard h3{font-size:17px}.wxrc-honor img,.wxrc-honor .fallback{height:180px}.mobilebar{border-color:#ae823c;background:#0c0b0af5}.mobilebar button.active{color:#f9d37b}.grid{gap:9px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
@@ -323,10 +357,10 @@ async function management(){
 async function deleteAnnouncement(id){if(!confirm('Delete this announcement?'))return;let r=await sb.from('announcements').delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted an announcement');await loadOnlineData();management()}
 async function deleteShared(table,id){if(!confirm('Delete this item?'))return;let r=await sb.from(table).delete().eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Deleted '+table+' item');await loadOnlineData();management()}
 function exportBackup(){const b=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),db,meta},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='WxRC-backup.json';a.click()}
-function awardsPage(){
- view.innerHTML=`<div class="sectionHead"><div><h2>Awards</h2><div class="sub">WxRC annual and special awards.</div></div></div><div class="superGrid">${(db.awards||[]).map(a=>`<div class="superCard">${a.image?`<img loading="lazy" decoding="async" src="${esc(a.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">🏆</div>`}<div class="shade"></div><div class="info"><span class="badge gold">${esc(a.award_year||'AWARD')}</span><h3>${esc(a.name)}</h3><div class="titleName">${esc(a.winner||'TBA')}</div><div class="sub">${esc(a.notes||'')}</div></div></div>`).join('')||empty()}</div>`}
-function hallOfFamePage(){
- view.innerHTML=`<div class="sectionHead"><div><h2>Hall of Fame</h2><div class="sub">WxRC Hall of Fame inductees.</div></div></div><div class="superGrid">${(db.hallOfFame||[]).map(a=>`<div class="superCard">${a.image?`<img loading="lazy" decoding="async" src="${esc(a.image)}">`:`<div class="avatar" style="width:100%;height:100%;border-radius:0;font-size:72px">★</div>`}<div class="shade"></div><div class="info"><span class="badge gold">CLASS OF ${esc(a.inducted_year||'')}</span><h3>${esc(a.name)}</h3><div class="sub">${esc(a.notes||'')}</div></div></div>`).join('')||empty()}</div>`}
+function wxrcAwardStar(name){return db.superstars.find(s=>String(s.name||'').toLowerCase()===String(name||'').toLowerCase())}
+function wxrcHonorCard(a,kind){const winner=kind==='award'?a.winner:a.name,star=wxrcAwardStar(winner),img=star?.image||a.image||'',year=kind==='award'?a.award_year:a.inducted_year;return `<article class="wxrc-honor">${img?`<img loading="lazy" decoding="async" src="${esc(img)}" alt="${esc(winner||'Superstar')}">`:`<div class="fallback">${kind==='award'?'🏆':'★'}</div>`}<div class="honor-info"><div class="honor-tag">${kind==='award'?esc(a.name):'✦ HALL OF FAME ✦'}</div><h3>${esc(winner||'TBA')}</h3><div class="honor-tag">${kind==='award'?esc(year||'AWARD'):'CLASS OF '+esc(year||'—')}</div>${a.notes?`<div class="sub">${esc(a.notes)}</div>`:''}</div></article>`}
+function awardsPage(){view.innerHTML=`<div class="wxrc-ceremony"><div class="wxrc-icon">🏆</div><h2>AWARDS</h2><p>Recognizing extraordinary achievements in the WxRC universe</p>${isManagement()?`<button class="btn primary" style="margin-top:14px" onclick="go('Management')">+ Manage Awards</button>`:''}</div><div class="wxrc-honor-grid">${(db.awards||[]).map(a=>wxrcHonorCard(a,'award')).join('')||empty()}</div>`}
+function hallOfFamePage(){view.innerHTML=`<div class="wxrc-ceremony"><div class="wxrc-icon">✦</div><h2>HALL OF FAME</h2><p>Honoring the legends who shaped our community</p>${isManagement()?`<button class="btn primary" style="margin-top:14px" onclick="go('Management')">+ Manage Inductees</button>`:''}</div><div class="wxrc-honor-grid">${(db.hallOfFame||[]).map(a=>wxrcHonorCard(a,'hof')).join('')||empty()}</div>`}
 
 const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Management','Settings'];
 const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
