@@ -538,7 +538,7 @@ function editChampion(id=''){
  if(!canEdit())return;
  const existing=db.champions.find(c=>c.id===id);
  const options=db.championships.map(t=>`<option value="${esc(t.id)}" ${existing?.titleId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
- const stars=db.superstars.map(st=>`<option value="${esc(st.id)}" ${existing?.superstarId===st.id?'selected':''}>${esc(st.name)}${/^(VACATE CHAMPIONSHIP|VACATE CHAMPIONSHIP Female)$/i.test(String(st.nickname||"").trim())?" — "+esc(st.nickname):""}</option>`).join('');
+ const stars=db.superstars.map(st=>`<option value="${esc(st.id)}" ${existing?.superstarId===st.id?'selected':''}>${esc(st.name)}${/^(VACANT|VACATE) CHAMPIONSHIP(?: Female)?$/i.test(String(st.nickname||"").trim())?" — "+esc(st.nickname):""}</option>`).join('');
  if(!options||!stars)return alert('Create a Championship and Superstar first.');
  openModal(existing?'Edit Champion':'Set New Champion',`<form id="champForm"><div class="field"><label>CHAMPIONSHIP</label><select name="titleId" required>${options}</select></div><div class="field"><label>SUPERSTAR</label><select name="superstarId" required>${stars}</select></div>${formField('dateWon',existing?.dateWon||new Date().toISOString().slice(0,10),'date')}${formField('notes',existing?.notes||'')}<button class="btn primary full">Save Champion</button></form>`);
  champForm.onsubmit=e=>{
@@ -546,7 +546,10 @@ function editChampion(id=''){
   if(!dateWon)return alert('Choose a date.');
   const chosen=db.superstars.find(x=>x.id===starId);
   const nick=String(chosen?.nickname||'').trim().toUpperCase();
-  const vacateKind=nick==='VACATE CHAMPIONSHIP'?'male':nick==='VACATE CHAMPIONSHIP FEMALE'?'female':null;
+  const displayName=String(chosen?.name||'').trim().toUpperCase();
+  const isVacantPlaceholder=(x)=>/^(VACANT|VACATE) CHAMPIONSHIP(?: FEMALE)?$/.test(String(x?.nickname||'').trim().toUpperCase()) || /^(VACANT|VACATE) CHAMPIONSHIP(?: FEMALE)?$/.test(String(x?.name||'').trim().toUpperCase());
+  const marker=[nick,displayName].find(x=>/^(VACANT|VACATE) CHAMPIONSHIP(?: FEMALE)?$/.test(x))||'';
+  const vacateKind=marker?(/ FEMALE$/.test(marker)?'female':'male'):null;
   if(vacateKind){
    const title=db.championships.find(x=>x.id===titleId);
    const isFemale=/women[’']?s/i.test(title?.name||'');
@@ -554,20 +557,23 @@ function editChampion(id=''){
    const holder=activeChampionFor(titleId);
    if(!holder){alert('Championship is already vacant.');return;}
    if(!confirm('Vacate '+title.name+'?'))return;
-   wxrcChampionHistory(holder,dateWon);
+   const oldStar=db.superstars.find(x=>x.id===holder.superstarId);
+   // Placeholder records are not real reigns and must not enter championship history.
+   if(!isVacantPlaceholder(oldStar))wxrcChampionHistory(holder,dateWon);
    db.champions=db.champions.filter(x=>x.id!==holder.id);
    pendingChanges=pendingChanges.filter(x=>!(x.table==='champions'&&x.id===holder.id));
    pendingDeletes.push({table:'champions',id:holder.id});
    unsavedChanges=true;
-   wxrcQueueDiscord(titleId,holder.superstarId,null,'Vacated via '+chosen.nickname);
+   wxrcQueueDiscord(titleId,isVacantPlaceholder(oldStar)?null:holder.superstarId,null,'Vacated via '+(chosen.nickname||chosen.name));
    saveDataCache();closeModal();champions();toastMsg('Championship vacated — save in Settings to publish');
    return;
   }
   const currentHolder=activeChampionFor(titleId);
-  const prevId=currentHolder?.superstarId||null;
+  const prevStar=db.superstars.find(x=>x.id===currentHolder?.superstarId);
+  const prevId=prevStar&&/^(VACANT|VACATE) CHAMPIONSHIP(?: FEMALE)?$/i.test(String(prevStar.nickname||prevStar.name||'').trim())?null:(currentHolder?.superstarId||null);
   if(existing && existing.titleId!==titleId){alert('To move a champion to another title, vacate the old title first.');return;}
-  if(currentHolder && currentHolder.id!==existing?.id){wxrcChampionHistory(currentHolder,dateWon);db.champions=db.champions.filter(c=>c.id!==currentHolder.id);pendingChanges=pendingChanges.filter(c=>!(c.table==='champions'&&c.id===currentHolder.id));pendingDeletes.push({table:'champions',id:currentHolder.id});}
-  if(existing && existing.superstarId!==starId){wxrcChampionHistory(existing,dateWon);existing.superstarId=starId;existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
+  if(currentHolder && currentHolder.id!==existing?.id){if(prevId)wxrcChampionHistory(currentHolder,dateWon);db.champions=db.champions.filter(c=>c.id!==currentHolder.id);pendingChanges=pendingChanges.filter(c=>!(c.table==='champions'&&c.id===currentHolder.id));pendingDeletes.push({table:'champions',id:currentHolder.id});}
+  if(existing && existing.superstarId!==starId){if(prevId)wxrcChampionHistory(existing,dateWon);existing.superstarId=starId;existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
   else if(existing){existing.dateWon=dateWon;existing.notes=f.notes.value.trim();markUnsaved('champions',existing.id,'edit');}
   else {const item={id:uid('c'),titleId,superstarId:starId,dateWon,notes:f.notes.value.trim(),image:''};db.champions.push(item);markUnsaved('champions',item.id,'new');}
   if(prevId!==starId)wxrcQueueDiscord(titleId,prevId,starId);
