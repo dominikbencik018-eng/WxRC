@@ -118,6 +118,25 @@ function wxrcApplyDeviceLayout(){
 }
 wxrcApplyDeviceLayout();
 </script>
+<style>
+.wxrc-member-hero{min-height:200px;display:flex;align-items:center;gap:25px;padding:26px;border:1px solid #ae7c26;border-radius:14px;background:linear-gradient(110deg,#08090d,#281a09 70%,#090a0d);overflow:hidden}
+.wxrc-member-hero img{width:145px;height:170px;object-fit:cover;object-position:top;border-radius:12px;border:1px solid #ae7c26}
+.wxrc-member-hero h1{font-size:clamp(27px,5vw,48px);color:#f2c75d;margin:10px 0 3px;text-transform:uppercase}
+.wxrc-member-hero p{letter-spacing:2px;color:#b6a47f}
+.wxrc-member-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.wxrc-member-stat{background:#0b0e14;border:1px solid #8e6d30;border-radius:10px;padding:14px;text-align:center}
+.wxrc-member-stat strong{display:block;font-size:32px;color:#f0c34e}
+.wxrc-member-stat span{font-size:11px;font-weight:800;letter-spacing:.7px}
+.wxrc-member-stat.red{border-color:#ad282c}.wxrc-member-stat.red strong{color:#fa4b50}
+.wxrc-member-stat.orange{border-color:#a75c13}.wxrc-member-stat.orange strong{color:#ff982f}
+.wxrc-member-stat.blue{border-color:#145eac}.wxrc-member-stat.blue strong{color:#46aaff}
+.wxrc-member-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.wxrc-member-actions button{cursor:pointer;text-align:left;padding:18px 12px;background:linear-gradient(#17130b,#0a0c10);color:#f3d083;border:1px solid #876523;border-radius:10px;font-weight:800}
+.wxrc-member-actions button:hover{background:#30220b}
+.wxrc-member-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.wxrc-member-breakdown>div{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #36312b}
+@media(max-width:760px){.wxrc-member-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.wxrc-member-panels{grid-template-columns:1fr}.wxrc-member-hero{padding:16px}.wxrc-member-hero img{width:95px;height:125px}.wxrc-member-stat{padding:9px 4px}.wxrc-member-stat strong{font-size:23px}.wxrc-member-stat span{font-size:9px}}
+</style>
 </head>
 <body>
 <div id="login" class="login">
@@ -388,6 +407,33 @@ const WXRC_META_KEY='wxrcMetaV5';
 let meta=JSON.parse(localStorage.getItem(WXRC_META_KEY)||'{"announcements":[],"activity":[],"maintenance":false,"maintenanceMessage":"WxRC is currently under maintenance."}');
 function saveMeta(){localStorage.setItem(WXRC_META_KEY,JSON.stringify(meta))}
 function logActivity(t){meta.activity.unshift({id:uid('a'),text:t,date:new Date().toISOString()});meta.activity=meta.activity.slice(0,100);saveMeta()}
+// Member dashboard is personalized using the Superstar linked to the signed-in profile.
+function wxrcMyStar(){return db.superstars.find(x=>x.id===current?.superstarId)||null}
+function wxrcDateShort(d){if(!d)return '—';const x=new Date(d+'T12:00:00');return Number.isNaN(x.getTime())?esc(d):x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function wxrcMyDashboard(){
+ const st=wxrcMyStar(),rows=wxrcAttendance.filter(a=>a.superstar_id===current?.superstarId);
+ const counts={Absence:0,Strike:0,Warning:0,Excused:0};rows.forEach(a=>{if(a.record_type in counts)counts[a.record_type]++});
+ const next=(db.shows||[]).filter(x=>(x.date||'')>=new Date().toISOString().slice(0,10)).sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(0,4);
+ const first=st?.name||current.displayName||'Superstar';
+ view.innerHTML=`<div class="wxrc-member-hero">${st?.image?`<img src="${esc(st.image)}" alt="">`:''}<div><span class="badge gold">WELCOME BACK</span><h1>${esc(first)}</h1><p>YOUR WxRC SUPERSTAR CENTER</p></div></div>
+ <div class="wxrc-member-stats">${[['Absence','ABSENCES','red'],['Strike','STRIKES','orange'],['Warning','WARNINGS','gold'],['Excused','EXCUSED','blue']].map(([key,label,color])=>`<div class="wxrc-member-stat ${color}"><strong>${counts[key]}</strong><span>${label}</span></div>`).join('')}</div>
+ <div class="wxrc-member-actions"><button onclick="go('Attendance')">▣ &nbsp; VIEW MY ATTENDANCE</button><button onclick="wxrcRequestExcuse()">✎ &nbsp; REQUEST EXCUSE</button><button onclick="go('Shows')">▣ &nbsp; VIEW SCHEDULE</button><button onclick="wxrcContactManagement()">✉ &nbsp; CONTACT MANAGEMENT</button></div>
+ <div class="wxrc-member-panels"><section class="settingsGroup"><div class="sectionHead"><h3>MY RECENT ATTENDANCE</h3><button class="btn small" onclick="go('Attendance')">View All →</button></div>${rows.slice(0,5).map(a=>`<div class="row"><div><b>${esc(a.record_type)}</b><div class="sub">${wxrcDateShort(a.start_date)} · ${esc(a.reason||'—')}</div></div><span class="badge ${a.record_type==='Absence'?'red':a.record_type==='Excused'?'blue':'gold'}">${esc(a.record_type)}</span></div>`).join('')||'<p class="sub">No attendance records yet.</p>'}</section>
+ <section class="settingsGroup"><div class="sectionHead"><h3>UPCOMING SHOWS</h3><button class="btn small" onclick="go('Shows')">View All →</button></div>${next.map(x=>`<div class="row"><div><b>${esc(x.name||'Show')}</b><div class="sub">${wxrcDateShort(x.date)} · ${esc(x.time||'')}</div></div><span class="badge gold">${esc(x.brand||'SHOW')}</span></div>`).join('')||'<p class="sub">No upcoming shows scheduled.</p>'}</section>
+ <section class="settingsGroup"><h3>MY ATTENDANCE OVERVIEW</h3><div class="wxrc-member-breakdown">${Object.entries(counts).map(([k,v])=>`<div><span>${esc(k)}</span><b>${v}</b></div>`).join('')}</div></section>
+ <section class="settingsGroup"><h3>ATTENDANCE RULES</h3><div class="row">🔴 &nbsp; Absence — recorded missed attendance</div><div class="row">🟠 &nbsp; Strike — disciplinary record</div><div class="row">🟡 &nbsp; Warning — recorded warning</div><div class="row">🔵 &nbsp; Excused — approved absence</div></section></div>`;
+}
+async function wxrcLoadMyAttendance(){
+ if(isGuest()||!initSupabase()||!current?.superstarId)return;
+ const {data,error}=await sb.from('wxrc_attendance').select('*').eq('superstar_id',current.superstarId).order('created_at',{ascending:false});
+ if(!error){wxrcAttendance=data||[];if(page==='Dashboard'&&!isManagement())wxrcMyDashboard()}
+}
+function wxrcRequestExcuse(){
+ if(!current?.superstarId){alert('Ask Management to link a Superstar to your account first.');return}
+ openModal('Request Excuse',`<form id="wxrcExcuseForm">${formField('start_date',new Date().toISOString().slice(0,10),'date')}${formField('end_date','','date')}<div class="field"><label>REASON</label><textarea name="reason" required maxlength="500" placeholder="Explain your absence"></textarea></div><button class="btn primary full" type="submit">SEND REQUEST</button></form>`);
+ wxrcExcuseForm.onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button[type=submit]');const row={superstar_id:current.superstarId,start_date:f.elements.namedItem('start_date').value,end_date:f.elements.namedItem('end_date').value||null,reason:f.elements.namedItem('reason').value.trim()};if(!row.reason)return alert('Enter a reason');if(row.end_date&&row.end_date<row.start_date)return alert('Invalid date range');btn.disabled=true;const {error}=await sb.from('wxrc_excuse_requests').insert(row);btn.disabled=false;if(error)return alert('Request could not be submitted: '+error.message+' — run the updated SQL setup first.');closeModal();toastMsg('Excuse request submitted for Management review')};
+}
+function wxrcContactManagement(){openModal('Contact Management',`<p class="sub">Contact an Owner, Administrator or Moderator through your community Discord server. Never share your account password.</p><button class="btn primary full" onclick="closeModal()">OK</button>`)}
 function dashboard(){
  let next=(db.shows||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0],ann=(db.announcements||[])[0];
  view.innerHTML=`<div class="hero"><span class="badge red">MANAGEMENT CENTER</span><h1>WxRC Dashboard</h1><div class="muted">Everything important in one place.</div></div><div class="grid" style="margin-top:16px">${[['Superstars',db.superstars.length],['Champions',db.champions.length],['Gimmick Submissions',(db.gimmickSubmissions||[]).length],['Shows',db.shows.length]].map(x=>`<div class="card stat"><span class="muted">${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</div>${ann?`<div class="card" style="margin-top:16px"><span class="badge red">${ann.pinned?'PINNED':'ANNOUNCEMENT'}</span><h3>${esc(ann.title)}</h3><div>${esc(ann.content)}</div></div>`:''}<div class="card" style="margin-top:16px"><h3>Next Show</h3>${next?`<b>${esc(next.name)}</b><div class="sub">${esc(next.date||'')} ${esc(next.time||'')} · ${esc(next.venue||'')}</div>`:empty()}</div>`}
@@ -414,18 +460,68 @@ function wxrcHonorCard(a,kind){const winner=kind==='award'?a.winner:a.name,star=
 function awardsPage(){view.innerHTML=`<div class="wxrc-ceremony"><div class="wxrc-icon">🏆</div><h2>AWARDS</h2><p>Recognizing extraordinary achievements in the WxRC universe</p>${isManagement()?`<button class="btn primary" style="margin-top:14px" onclick="go('Management')">+ Manage Awards</button>`:''}</div><div class="wxrc-honor-grid">${(db.awards||[]).map(a=>wxrcHonorCard(a,'award')).join('')||empty()}</div>`}
 function hallOfFamePage(){view.innerHTML=`<div class="wxrc-ceremony"><div class="wxrc-icon">✦</div><h2>HALL OF FAME</h2><p>Honoring the legends who shaped our community</p>${isManagement()?`<button class="btn primary" style="margin-top:14px" onclick="go('Management')">+ Manage Inductees</button>`:''}</div><div class="wxrc-honor-grid">${(db.hallOfFame||[]).map(a=>wxrcHonorCard(a,'hof')).join('')||empty()}</div>`}
 
-const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Management','Settings'];
-const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Settings':'⚙'};
+const nav=['Dashboard','News','Search','Superstars','Roster','Submit a Gimmick','Champions','Championships','Awards','Hall of Fame','Shows','WWE Coins','Attendance','Management','Settings'];
+const navIcons={'Dashboard':'⌂','Search':'⌕','Management':'⚒','News':'▤','Home':'⌂','Superstars':'★','Roster':'♟','Submit a Gimmick':'＋','Champions':'♛','Championships':'◆','Awards':'🏆','Hall of Fame':'★','Shows':'▣','WWE Coins':'◉','Attendance':'▣','Settings':'⚙'};
 function navLabel(n){return `<span style="font-size:18px;display:block;line-height:20px">${navIcons[n]||'•'}</span><span>${n}</span>`}
-function renderNav(){let allowed=nav.filter(n=>!['Settings','Management'].includes(n)||isManagement());let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
+function renderNav(){let allowed=nav.filter(n=>(n!=='Attendance'||!isGuest())&&(!['Settings','Management'].includes(n)||isManagement()));let h=allowed.map(n=>`<button class="${n===page?'active':''} ${n==='Settings'?'adminOnly':''}" onclick="go('${n.replaceAll("'","\\'")}')" style="display:flex;align-items:center;gap:10px">${navIcons[n]||'•'} <span>${n}</span></button>`).join('');sideNav.innerHTML=h;mobileNav.innerHTML=allowed.map(n=>`<button class="${n===page?'active':''}" onclick="go('${n}')">${navLabel(n)}</button>`).join('')}
 function go(n){
+ if(n==='Attendance'&&isGuest()){toastMsg('Log in to view Attendance');return;}
  if(page===n)return;
  page=n;
  pageTitle.textContent=n;
  view.innerHTML='<div class="card"><div class="sub">Loading…</div></div>';
  requestAnimationFrame(()=>{renderNav();render()});
 }
-function render(){if(!current)current={id:'guest',displayName:'Guest',role:'WWE Universe'};pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();authTopBtn.textContent=isGuest()?'Log In':'Log Out';authTopBtn.onclick=isGuest()?openLoginScreen:logout;const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+function render(){if(!current)current={id:'guest',displayName:'Guest',role:'WWE Universe'};pageTitle.textContent=page;userName.textContent=current.displayName;userRole.textContent=normalizeRole(current.role);userAvatar.textContent=(current.displayName||'G')[0].toUpperCase();authTopBtn.textContent=isGuest()?'Log In':'Log Out';authTopBtn.onclick=isGuest()?openLoginScreen:logout;const map={'Dashboard':dashboard,'News':news,'Search':searchCenter,'Superstars':superstars,'Roster':roster,'Submit a Gimmick':submitGimmick,'Champions':champions,'Championship History':()=>openChampionshipHistoryId?championshipHistory(openChampionshipHistoryId):backToChampions(),'Championships':championships,'Awards':awardsPage,'Hall of Fame':hallOfFamePage,'Shows':shows,'WWE Coins':coins,'Attendance':attendancePage,'Management':management,'Settings':settings};try{(map[page]||news)()}catch(err){console.error(err);view.innerHTML='<div class="card"><h3>Page could not be displayed.</h3><div class="sub">Please refresh the app. If this continues, report it to WxRC Management.</div></div>'}}
+
+// Attendance records are loaded directly from Supabase. RLS controls access on the server.
+let wxrcAttendance=[];
+async function attendancePage(){
+ if(isGuest()){go('News');return}
+ view.innerHTML='<div class="settingsGroup"><h2>ATTENDANCE</h2><div class="sub">Loading attendance records…</div></div>';
+ if(!initSupabase()){view.innerHTML='<div class="card">Connection unavailable. Attendance requires an online account.</div>';return}
+ const query=sb.from('wxrc_attendance').select('*');const {data,error}=await (isManagement()?query:query.eq('superstar_id',current.superstarId||'00000000-0000-0000-0000-000000000000')).order('created_at',{ascending:false});
+ if(page!=='Attendance')return;
+ if(error){view.innerHTML=`<div class="card"><h2>ATTENDANCE</h2><div class="sub">${esc(error.message)}. Ask the Owner to run the Attendance SQL setup.</div></div>`;return}
+ wxrcAttendance=data||[];attendanceRender();
+}
+function attendanceRender(){
+ const canManage=isManagement();
+ view.innerHTML=`<div class="wxrc-ceremony"><div class="wxrc-icon">▣</div><h2>ATTENDANCE</h2><p>Superstar absences, strikes, warnings and excused records</p>${canManage?'<button class="btn primary" onclick="attendanceEditor()">+ ADD RECORD</button>':''}</div>
+ <div class="settingsGroup"><div class="sectionHead"><h3>Attendance Records</h3><span class="badge">${wxrcAttendance.length}</span></div>
+ <div class="field"><label>SEARCH SUPERSTAR</label><input id="attendanceSearch" placeholder="Search by Superstar or type" oninput="attendanceFilter(this.value)"></div>
+ <div id="attendanceRows" class="list"></div></div>`;
+ attendanceFilter('');
+ wxrcRenderExcuseRequests();
+}
+async function wxrcRenderExcuseRequests(){
+ const container=document.createElement('section');container.className='settingsGroup';container.id='wxrcRequestsPanel';container.innerHTML='<h3>EXCUSE REQUESTS</h3><p class="sub">Loading requests…</p>';view.appendChild(container);
+ let q=sb.from('wxrc_excuse_requests').select('*').order('created_at',{ascending:false}).limit(100);
+ if(!isManagement())q=q.eq('superstar_id',current?.superstarId||'00000000-0000-0000-0000-000000000000');
+ const {data,error}=await q;
+ if(page!=='Attendance'||!document.getElementById('wxrcRequestsPanel'))return;
+ if(error){container.innerHTML='<h3>EXCUSE REQUESTS</h3><p class="sub">Run the v5.8.0 SQL setup to enable requests.</p>';return}
+ container.innerHTML=`<h3>${isManagement()?'EXCUSE REQUESTS — MANAGEMENT':'MY EXCUSE REQUESTS'}</h3>${(data||[]).map(r=>{const star=db.superstars.find(x=>x.id===r.superstar_id);return `<div class="row"><div><b>${esc(star?.name||'Superstar')}</b><div class="sub">${wxrcDateShort(r.start_date)}${r.end_date?' – '+wxrcDateShort(r.end_date):''}</div><div class="sub">${esc(r.reason)}</div></div><div><span class="badge ${r.status==='Approved'?'blue':r.status==='Declined'?'red':'gold'}">${esc(r.status)}</span>${isManagement()&&r.status==='Pending'?`<div style="display:flex;gap:5px;margin-top:6px"><button class="btn small" onclick="wxrcReviewExcuse('${esc(r.id)}','Approved')">Approve</button><button class="btn small danger" onclick="wxrcReviewExcuse('${esc(r.id)}','Declined')">Decline</button></div>`:''}</div></div>`}).join('')||'<p class="sub">No requests yet.</p>'}`;
+}
+async function wxrcReviewExcuse(id,status){
+ if(!isManagement()||!['Approved','Declined'].includes(status))return;
+ const {error}=await sb.from('wxrc_excuse_requests').update({status}).eq('id',id).eq('status','Pending');
+ if(error)return alert(error.message);
+ toastMsg('Request '+status.toLowerCase());wxrcRenderExcuseRequests();
+}
+function attendanceFilter(q){
+ const target=document.getElementById('attendanceRows');if(!target)return;
+ const rows=wxrcAttendance.filter(a=>{const st=db.superstars.find(x=>x.id===a.superstar_id);return `${st?.name||''} ${a.record_type||''} ${a.reason||''}`.toLowerCase().includes(q.toLowerCase())});
+ target.innerHTML=rows.map(a=>{const st=db.superstars.find(x=>x.id===a.superstar_id);const type=a.record_type||'Absence';return `<div class="row" style="gap:12px"><div style="display:flex;align-items:center;gap:12px;min-width:0">${st?.image?`<img src="${esc(st.image)}" loading="lazy" style="width:48px;height:48px;object-fit:cover;border-radius:10px">`:'<span class="avatar">★</span>'}<div><b>${esc(st?.name||'Unknown Superstar')}</b><div class="sub">${esc(a.start_date||'')} ${a.end_date?'→ '+esc(a.end_date):''}</div><div class="sub">${esc(a.reason||'No reason provided')}</div></div></div><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span class="badge ${type==='Strike'?'red':type==='Excused'?'blue':'gold'}">${esc(type.toUpperCase())}</span>${isManagement()?`<button class="btn small" onclick="attendanceEditor('${esc(a.id)}')">Edit</button><button class="btn small danger" onclick="attendanceDelete('${esc(a.id)}')">Delete</button>`:''}</div></div>`}).join('')||empty();
+}
+function attendanceEditor(id=''){
+ if(!isManagement())return;
+ const a=wxrcAttendance.find(x=>x.id===id)||{};
+ const stars=db.superstars.filter(x=>!/^(VACANT|VACATE) CHAMPIONSHIP$/i.test(x.name||''));
+ openModal(id?'Edit Attendance':'Add Attendance',`<form id="attendanceForm"><div class="field"><label>SUPERSTAR</label><select name="superstar_id" required>${stars.map(st=>`<option value="${esc(st.id)}" ${st.id===a.superstar_id?'selected':''}>${esc(st.name)}</option>`).join('')}</select></div><div class="field"><label>TYPE</label><select name="record_type">${['Absence','Strike','Warning','Excused'].map(t=>`<option ${t===a.record_type?'selected':''}>${t}</option>`).join('')}</select></div>${formField('reason',a.reason||'')}${formField('start_date',a.start_date||new Date().toISOString().slice(0,10),'date')}${formField('end_date',a.end_date||'','date')}<div class="field"><label>NOTES</label><textarea name="notes">${esc(a.notes||'')}</textarea></div><button class="btn primary full">SAVE RECORD</button></form>`);
+ attendanceForm.onsubmit=async e=>{e.preventDefault();const f=e.currentTarget;const get=k=>f.elements.namedItem(k).value;const row={superstar_id:get('superstar_id'),record_type:get('record_type'),reason:get('reason').trim(),start_date:get('start_date'),end_date:get('end_date')||null,notes:get('notes').trim()};if(row.end_date&&row.end_date<row.start_date){alert('End date cannot be before start date.');return}const btn=f.querySelector('button[type=submit],button.btn.primary');btn.disabled=true;const r=id?await sb.from('wxrc_attendance').update(row).eq('id',id):await sb.from('wxrc_attendance').insert(row);if(r.error){btn.disabled=false;alert(r.error.message);return}closeModal();await attendancePage();toastMsg('Attendance saved')};
+}
+async function attendanceDelete(id){if(!isManagement()||!confirm('Delete this attendance record?'))return;const {error}=await sb.from('wxrc_attendance').delete().eq('id',id);if(error){alert(error.message);return}await attendancePage();toastMsg('Record deleted')}
 function stats(){return {superstars:db.superstars.length,champions:db.champions.length,shows:db.shows.length}}
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 
