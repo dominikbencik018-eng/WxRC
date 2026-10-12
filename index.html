@@ -156,7 +156,7 @@ wxrcApplyDeviceLayout();
 .wxrc-checkin-card-info{display:flex;flex-direction:column;gap:5px}.wxrc-checkin-card strong{font-size:13px;line-height:1.25}.wxrc-checkin-card small{font-size:11px;color:#c5b9a3}.wxrc-checkin-card em{font-style:normal;color:#d3b36e;font-weight:800;font-size:11px;letter-spacing:.5px}
 .wxrc-checkin-card.is-absent{background:linear-gradient(160deg,#9b1a23,#460b11);border-color:#ff555d;box-shadow:0 0 0 1px #ff555d55}.wxrc-checkin-card.is-absent em{color:#fff}.wxrc-checkin-card:disabled{cursor:default;opacity:.85}
 @media(max-width:600px){.wxrc-checkin-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.wxrc-checkin-card{min-height:165px;padding:11px 5px}.wxrc-checkin-card img,.wxrc-checkin-placeholder{width:62px;height:62px}}
-</style></head>
+</style><style>.wxrc-checkin-savebar{position:sticky;bottom:0;background:#16130d;border:1px solid #9b792d;padding:14px;border-radius:12px;margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -6px 24px #0009}.wxrc-checkin-savebar button{font-weight:900}.wxrc-checkin-savebar span{color:#eac66e;font-size:13px}</style></head>
 <body>
 <div id="login" class="login">
   <div class="loginCard">
@@ -505,7 +505,7 @@ async function attendancePage(){
  wxrcAttendance=data||[];attendanceRender();
 }
 let wxrcTab='Overview',wxrcShowId='',wxrcBrandFilter='',wxrcDateFrom='',wxrcDateTo='';
-function wxrcSwitchTab(t){wxrcTab=t;attendanceRender()}
+function wxrcSwitchTab(t){if(wxrcPendingAbsences.size&&t!==wxrcTab&&!confirm('Discard unsaved check-in changes?'))return;if(t!==wxrcTab)wxrcPendingAbsences.clear();wxrcTab=t;attendanceRender()}
 function attendanceRender(){
  const counts={Absence:0,Strike:0,Warning:0,Excused:0};wxrcAttendance.forEach(x=>{if(x.record_type in counts)counts[x.record_type]++});
  view.innerHTML=`<div class="wxrc-ceremony"><div class="wxrc-icon">▣</div><h2>ATTENDANCE CENTER</h2><p>Show Check-in • Discipline • History • Excuse Requests</p></div>
@@ -520,6 +520,7 @@ function attendanceRender(){
  attendanceFilter('');
 }
 let wxrcCheckinBusy=new Set();
+let wxrcPendingAbsences=new Map();
 let wxrcCheckinDate=new Date().toLocaleDateString('en-CA');
 const wxrcAbsenceReasons=['No-show','Personal Reasons','Illness','Technical Issues','Approved Leave','Other'];
 function wxrcAutomaticShow(shows){
@@ -534,9 +535,10 @@ async function wxrcCheckinPage(){
  wxrcShowId=show?.id||'';
  box.innerHTML=`<section class="settingsGroup wxrc-checkin-section"><div class="sectionHead"><div><h3>SHOW CHECK-IN</h3><p class="sub">Tap a Superstar to set or edit an absence, date and reason.</p></div><span class="badge gold">QUICK MARKING</span></div>
  <div class="wxrc-checkin-show">${show?`<span class="wxrc-checkin-show-label">AUTOMATICALLY SELECTED SHOW</span><strong>${esc(show.name||'Show')}</strong><small>${esc(show.date||'')}</small>`:'<strong>No shows available</strong><small>Create a show in Shows to use check-in.</small>'}</div>
- <div class="wxrc-checkin-date"><label for="wxrcCheckinDate">ATTENDANCE DATE</label><input type="date" id="wxrcCheckinDate" value="${wxrcCheckinDate}" onchange="wxrcCheckinDate=this.value;wxrcCheckinPage()"></div>
+ <div class="wxrc-checkin-date"><label for="wxrcCheckinDate">ATTENDANCE DATE</label><input type="date" id="wxrcCheckinDate" value="${wxrcCheckinDate}" onchange="wxrcChangeCheckinDate(this.value)"></div>
  <div class="wxrc-checkin-toolbar"><input id="wxrcCheckinSearch" placeholder="Search Superstar…" oninput="wxrcFilterCheckinCards(this.value)"><span id="wxrcCheckinCount"></span></div>
- <div id="wxrcCheckRows" class="wxrc-checkin-grid"><p class="sub">Loading Superstar cards…</p></div></section>`;
+ <div id="wxrcCheckRows" class="wxrc-checkin-grid"><p class="sub">Loading Superstar cards…</p></div>
+ <div class="wxrc-checkin-savebar"><span id="wxrcPendingCount">0 pending changes</span><button class="btn primary" type="button" id="wxrcSaveAllBtn" onclick="wxrcSaveAllAbsences()" disabled>✓ SAVE ATTENDANCE</button></div></section>`;
  if(!show)return;
  const {data,error}=await sb.from('wxrc_show_checkins').select('*').eq('show_id',show.id).eq('checkin_date',wxrcCheckinDate);
  if(wxrcTab!=='Check-in'||!document.getElementById('wxrcCheckRows')||wxrcShowId!==show.id)return;
@@ -544,13 +546,21 @@ async function wxrcCheckinPage(){
  wxrcCheckins=data||[];
  const stars=(isManagement()?db.superstars:db.superstars.filter(x=>x.id===current?.superstarId)).filter(x=>!/^(VACANT|VACATE) CHAMPIONSHIP$/i.test(x.name||'')).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
  document.getElementById('wxrcCheckRows').innerHTML=stars.map(st=>{
-  const r=wxrcCheckins.find(x=>x.superstar_id===st.id);const absent=r?.status==='Absent';
+  const r=wxrcCheckins.find(x=>x.superstar_id===st.id);const pending=wxrcPendingAbsences.get(st.id);const absent=pending?pending.action==='save':r?.status==='Absent';
   const label=absent?'ABSENT':r?.status||'NOT MARKED';
   return `<button type="button" class="wxrc-checkin-card ${absent?'is-absent':''}" data-name="${esc((st.name||'').toLowerCase())}" data-star="${esc(st.id)}" aria-pressed="${absent}" ${isManagement()?`onclick="wxrcOpenAbsence('${esc(st.id)}')"`:'disabled'}>
   ${st.image?`<img src="${esc(st.image)}" alt="" loading="lazy">`:'<span class="wxrc-checkin-placeholder">★</span>'}
   <span class="wxrc-checkin-card-info"><strong>${esc(st.name||'Superstar')}</strong><small>${esc(st.brand||'WxRC')}</small><em>${absent?'✕ ':''}${esc(label)}</em>${absent&&r?.reason?`<small class="wxrc-card-reason">${esc(r.reason)}</small>`:''}</span></button>`;
  }).join('')||'<p class="sub">No Superstar profiles found.</p>';
- wxrcUpdateCheckinCount();
+ wxrcUpdateCheckinCount();wxrcUpdatePendingCount();
+}
+function wxrcChangeCheckinDate(date){
+ if(wxrcPendingAbsences.size&&!confirm('Discard unsaved attendance changes?')){document.getElementById('wxrcCheckinDate').value=wxrcCheckinDate;return}
+ wxrcPendingAbsences.clear();wxrcCheckinDate=date;wxrcCheckinPage();
+}
+function wxrcUpdatePendingCount(){
+ const n=wxrcPendingAbsences.size,el=document.getElementById('wxrcPendingCount'),btn=document.getElementById('wxrcSaveAllBtn');
+ if(el)el.textContent=n+' unsaved change'+(n===1?'':'s');if(btn)btn.disabled=!n;
 }
 function wxrcFilterCheckinCards(q){document.querySelectorAll('.wxrc-checkin-card').forEach(c=>{c.style.display=(c.dataset.name||'').includes(q.toLowerCase())?'':'none'});}
 function wxrcUpdateCheckinCount(){const count=wxrcCheckins.filter(x=>x.status==='Absent').length;const el=document.getElementById('wxrcCheckinCount');if(el)el.textContent=`${count} marked absent`;}
@@ -558,26 +568,35 @@ function wxrcOpenAbsence(star){
  if(!isManagement()||wxrcCheckinBusy.has(star))return;
  const st=db.superstars.find(x=>x.id===star),old=wxrcCheckins.find(x=>x.superstar_id===star);
  if(old&&old.status!=='Absent'){alert('Existing status: '+old.status+'. This record must be managed separately.');return}
- const choices=wxrcAbsenceReasons.map(r=>`<option value="${esc(r)}" ${old?.reason===r?'selected':''}>${esc(r)}</option>`).join('');
- openModal('Attendance — '+(st?.name||'Superstar'),`<form id="wxrcAbsenceForm"><div class="field"><label>DATE</label><input type="date" name="checkin_date" value="${esc(wxrcCheckinDate)}" required></div><div class="field"><label>REASON</label><select name="reason" required>${choices}</select></div><div class="field"><label>NOTES (OPTIONAL)</label><textarea name="notes" maxlength="500" placeholder="Additional details">${esc(old?.notes||'')}</textarea></div><button class="btn primary full" type="submit">${old?'SAVE CHANGES':'MARK ABSENT'}</button>${old?'<button class="btn danger full" type="button" id="wxrcRemoveAbsence">REMOVE ABSENCE</button>':''}</form>`);
+ const pending=wxrcPendingAbsences.get(star);const choices=wxrcAbsenceReasons.map(r=>`<option value="${esc(r)}" ${(pending?.reason||old?.reason)===r?'selected':''}>${esc(r)}</option>`).join('');
+ openModal('Attendance — '+(st?.name||'Superstar'),`<form id="wxrcAbsenceForm"><div class="field"><label>DATE</label><input type="date" name="checkin_date" value="${esc(wxrcCheckinDate)}" required></div><div class="field"><label>REASON</label><select name="reason" required>${choices}</select></div><div class="field"><label>NOTES (OPTIONAL)</label><textarea name="notes" maxlength="500" placeholder="Additional details">${esc(pending?.notes||old?.notes||'')}</textarea></div><button class="btn primary full" type="submit">ADD TO CHECK-IN</button>${old||pending?'<button class="btn danger full" type="button" id="wxrcRemoveAbsence">REMOVE ABSENCE</button>':''}</form>`);
  const form=document.getElementById('wxrcAbsenceForm');
  form.onsubmit=async e=>{e.preventDefault();await wxrcSaveAbsence(star,old,false,form)};
  const remove=document.getElementById('wxrcRemoveAbsence');if(remove)remove.onclick=()=>wxrcSaveAbsence(star,old,true,form);
 }
 async function wxrcSaveAbsence(star,old,remove,form){
- if(!isManagement()||wxrcCheckinBusy.has(star))return;
  const date=form.elements.namedItem('checkin_date').value,reason=form.elements.namedItem('reason').value,notes=form.elements.namedItem('notes').value.trim();
  if(!remove&&(!date||!wxrcAbsenceReasons.includes(reason)))return alert('Choose a valid date and reason.');
- wxrcCheckinBusy.add(star);
- const buttons=form.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);
- let result;
- if(remove)result=await sb.from('wxrc_show_checkins').delete().eq('id',old.id);
- else if(old)result=await sb.from('wxrc_show_checkins').update({checkin_date:date,reason,notes}).eq('id',old.id);
- else result=await sb.from('wxrc_show_checkins').insert({show_id:wxrcShowId,superstar_id:star,status:'Absent',checkin_date:date,reason,notes});
- wxrcCheckinBusy.delete(star);buttons.forEach(b=>b.disabled=false);
- if(result.error)return alert('Could not save: '+result.error.message);
- closeModal();toastMsg(remove?'Absence removed':'Absence saved');
- wxrcCheckinDate=date||wxrcCheckinDate;wxrcCheckinPage();
+ if(!remove&&date!==wxrcCheckinDate){alert('Change the main attendance date first.');return}
+ if(remove&&!old){wxrcPendingAbsences.delete(star)}
+ else wxrcPendingAbsences.set(star,{action:remove?'delete':'save',reason,notes,date});
+ closeModal();wxrcCheckinPage();
+}
+async function wxrcSaveAllAbsences(){
+ if(!isManagement()||!wxrcPendingAbsences.size)return;
+ const btn=document.getElementById('wxrcSaveAllBtn');if(btn)btn.disabled=true;
+ let done=0;const errors=[];
+ for(const [star,change] of [...wxrcPendingAbsences]){
+  const old=wxrcCheckins.find(x=>x.superstar_id===star);let result;
+  if(change.action==='delete')result=old?await sb.from('wxrc_show_checkins').delete().eq('id',old.id):{error:null};
+  else if(old)result=await sb.from('wxrc_show_checkins').update({status:'Absent',reason:change.reason,notes:change.notes,checkin_date:change.date}).eq('id',old.id);
+  else result=await sb.from('wxrc_show_checkins').insert({show_id:wxrcShowId,superstar_id:star,status:'Absent',checkin_date:change.date,reason:change.reason,notes:change.notes});
+  if(result.error)errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': '+result.error.message);
+  else{done++;wxrcPendingAbsences.delete(star)}
+ }
+ if(errors.length)alert('Some records could not be saved:\n'+errors.join('\n'));
+ if(done){toastMsg(done+' attendance change(s) saved');await attendancePage();wxrcTab='Check-in';attendanceRender()}
+ else wxrcUpdatePendingCount();
 }
 async function wxrcRenderExcuseRequests(parent){
  const container=document.createElement('section');container.className='settingsGroup';container.id='wxrcRequestsPanel';container.innerHTML='<h3>EXCUSE REQUESTS</h3><p class="sub">Loading requests…</p>';parent.appendChild(container);
