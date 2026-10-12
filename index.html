@@ -531,26 +531,23 @@ function wxrcAutomaticShow(shows){
 }
 async function wxrcCheckinPage(){
  const box=document.getElementById('wxrcAttContent');if(!box)return;
- const shows=[...(db.shows||[])];const show=wxrcAutomaticShow(shows);
- wxrcShowId=show?.id||'';
- box.innerHTML=`<section class="settingsGroup wxrc-checkin-section"><div class="sectionHead"><div><h3>SHOW CHECK-IN</h3><p class="sub">Tap a Superstar to set or edit an absence, date and reason.</p></div><span class="badge gold">QUICK MARKING</span></div>
- <div class="wxrc-checkin-show">${show?`<span class="wxrc-checkin-show-label">AUTOMATICALLY SELECTED SHOW</span><strong>${esc(show.name||'Show')}</strong><small>${esc(show.date||'')}</small>`:'<strong>No shows available</strong><small>Create a show in Shows to use check-in.</small>'}</div>
+ box.innerHTML=`<section class="settingsGroup wxrc-checkin-section"><div class="sectionHead"><div><h3>ATTENDANCE CHECK-IN</h3><p class="sub">Select a date, mark absent Superstars, then save directly to Attendance Center.</p></div><span class="badge gold">ONE ATTENDANCE DATABASE</span></div>
  <div class="wxrc-checkin-date"><label for="wxrcCheckinDate">ATTENDANCE DATE</label><input type="date" id="wxrcCheckinDate" value="${wxrcCheckinDate}" onchange="wxrcChangeCheckinDate(this.value)"></div>
  <div class="wxrc-checkin-toolbar"><input id="wxrcCheckinSearch" placeholder="Search Superstar…" oninput="wxrcFilterCheckinCards(this.value)"><span id="wxrcCheckinCount"></span></div>
  <div id="wxrcCheckRows" class="wxrc-checkin-grid"><p class="sub">Loading Superstar cards…</p></div>
  <div class="wxrc-checkin-savebar"><span id="wxrcPendingCount">0 pending changes</span><button class="btn primary" type="button" id="wxrcSaveAllBtn" onclick="wxrcSaveAllAbsences()" disabled>✓ SAVE ATTENDANCE</button></div></section>`;
- if(!show)return;
- const {data,error}=await sb.from('wxrc_show_checkins').select('*').eq('show_id',show.id).eq('checkin_date',wxrcCheckinDate);
- if(wxrcTab!=='Check-in'||!document.getElementById('wxrcCheckRows')||wxrcShowId!==show.id)return;
- if(error){document.getElementById('wxrcCheckRows').textContent='Check-in unavailable: '+error.message;return}
- wxrcCheckins=data||[];
+ // Read only the Attendance Center table; old wxrc_show_checkins is not used.
+ const {data,error}=await sb.from('wxrc_attendance').select('*').eq('start_date',wxrcCheckinDate).eq('record_type','Absence');
+ if(wxrcTab!=='Check-in'||!document.getElementById('wxrcCheckRows'))return;
+ if(error){document.getElementById('wxrcCheckRows').textContent='Attendance unavailable: '+error.message;return}
+ wxrcCheckins=(data||[]).map(x=>({...x,status:'Absent',checkin_date:x.start_date}));
  const stars=(isManagement()?db.superstars:db.superstars.filter(x=>x.id===current?.superstarId)).filter(x=>!/^(VACANT|VACATE) CHAMPIONSHIP$/i.test(x.name||'')).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
  document.getElementById('wxrcCheckRows').innerHTML=stars.map(st=>{
-  const r=wxrcCheckins.find(x=>x.superstar_id===st.id);const pending=wxrcPendingAbsences.get(st.id);const absent=pending?pending.action==='save':r?.status==='Absent';
-  const label=absent?'ABSENT':r?.status||'NOT MARKED';
+  const r=wxrcCheckins.find(x=>x.superstar_id===st.id),pending=wxrcPendingAbsences.get(st.id),absent=pending?pending.action==='save':!!r;
+  const label=absent?'ABSENT':'NOT MARKED';
   return `<button type="button" class="wxrc-checkin-card ${absent?'is-absent':''}" data-name="${esc((st.name||'').toLowerCase())}" data-star="${esc(st.id)}" aria-pressed="${absent}" ${isManagement()?`onclick="wxrcOpenAbsence('${esc(st.id)}')"`:'disabled'}>
   ${st.image?`<img src="${esc(st.image)}" alt="" loading="lazy">`:'<span class="wxrc-checkin-placeholder">★</span>'}
-  <span class="wxrc-checkin-card-info"><strong>${esc(st.name||'Superstar')}</strong><small>${esc(st.brand||'WxRC')}</small><em>${absent?'✕ ':''}${esc(label)}</em>${absent&&r?.reason?`<small class="wxrc-card-reason">${esc(r.reason)}</small>`:''}</span></button>`;
+  <span class="wxrc-checkin-card-info"><strong>${esc(st.name||'Superstar')}</strong><small>${esc(st.brand||'WxRC')}</small><em>${absent?'✕ ':''}${label}</em>${absent&&(pending?.reason||r?.reason)?`<small class="wxrc-card-reason">${esc(pending?.reason||r?.reason)}</small>`:''}</span></button>`;
  }).join('')||'<p class="sub">No Superstar profiles found.</p>';
  wxrcUpdateCheckinCount();wxrcUpdatePendingCount();
 }
@@ -587,30 +584,26 @@ async function wxrcSaveAllAbsences(){
  const btn=document.getElementById('wxrcSaveAllBtn');if(btn)btn.disabled=true;
  let done=0;const errors=[];
  for(const [star,change] of [...wxrcPendingAbsences]){
-  const old=wxrcCheckins.find(x=>x.superstar_id===star);
-  let result,checkinId=old?.id;
+  const name=db.superstars.find(x=>x.id===star)?.name||star;
+  const lookup=await sb.from('wxrc_attendance').select('id').eq('superstar_id',star).eq('start_date',change.date).eq('record_type','Absence').order('created_at',{ascending:true});
+  if(lookup.error){errors.push(name+': '+lookup.error.message);continue}
+  const ids=(lookup.data||[]).map(x=>x.id);
+  let error=null;
   if(change.action==='delete'){
-   if(old){
-    const a=await sb.from('wxrc_attendance').delete().eq('source_checkin_id',old.id);
-    if(a.error){errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': Attendance sync: '+a.error.message);continue}
-    result=await sb.from('wxrc_show_checkins').delete().eq('id',old.id);
-   }else result={error:null};
+   // Only remove absence records for this date, never strikes or warnings.
+   if(ids.length){const r=await sb.from('wxrc_attendance').delete().in('id',ids);error=r.error}
   }else{
-   const payload={status:'Absent',reason:change.reason,notes:change.notes,checkin_date:change.date};
-   if(old)result=await sb.from('wxrc_show_checkins').update(payload).eq('id',old.id).select('id').single();
-   else result=await sb.from('wxrc_show_checkins').insert({...payload,show_id:wxrcShowId,superstar_id:star}).select('id').single();
-   if(!result.error){
-    checkinId=result.data?.id||checkinId;
-    const record={superstar_id:star,record_type:'Absence',reason:change.reason,start_date:change.date,end_date:null,notes:change.notes||'',source_checkin_id:checkinId};
-    const sync=await sb.from('wxrc_attendance').upsert(record,{onConflict:'source_checkin_id'});
-    if(sync.error){errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': Attendance sync: '+sync.error.message);continue}
-   }
+   const row={superstar_id:star,record_type:'Absence',reason:change.reason,start_date:change.date,end_date:null,notes:change.notes||''};
+   const r=ids.length?await sb.from('wxrc_attendance').update(row).eq('id',ids[0]):await sb.from('wxrc_attendance').insert(row);
+   error=r.error;
+   // Clean up only duplicate Absence rows for the same Superstar and date.
+   if(!error&&ids.length>1){const extra=await sb.from('wxrc_attendance').delete().in('id',ids.slice(1));error=extra.error}
   }
-  if(result.error)errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': '+result.error.message);
-  else{done++;wxrcPendingAbsences.delete(star)}
+  if(error){errors.push(name+': '+error.message);continue}
+  done++;wxrcPendingAbsences.delete(star);
  }
- if(errors.length)alert('Some records could not be saved:\\n'+errors.join('\\n'));
- if(done){toastMsg(done+' change(s) saved to Check-in and Attendance');await attendancePage();wxrcTab='Check-in';attendanceRender()}
+ if(errors.length)alert('Some records could not be saved:\n'+errors.join('\n'));
+ if(done){toastMsg(done+' record(s) saved directly to Attendance Center');await attendancePage();wxrcTab='Check-in';attendanceRender()}
  else wxrcUpdatePendingCount();
 }
 async function wxrcRenderExcuseRequests(parent){
@@ -1007,19 +1000,12 @@ async function manageSuperstar(id){
  const warnings=(records||[]).filter(x=>['Warning','Strike'].includes(x.record_type));
  openModal('Manage '+s.name,`<form id="smForm">
  <div class="field"><label>AVAILABILITY</label><select name="availability">${['Active','Inactive','Injured','Suspended','Part-Time','Released'].map(v=>`<option ${m.availability===v?'selected':''}>${v}</option>`).join('')}</select></div>
- <div class="settingsGroup"><h3>ATTENDANCE & DISCIPLINE PROFILE</h3><div class="wxrc-att-stats">${[['Absences',attendance.filter(x=>x.record_type==='Absence').length],['Excused',attendance.filter(x=>x.record_type==='Excused').length],['Warnings',warnings.filter(x=>x.record_type==='Warning').length],['Strikes',warnings.filter(x=>x.record_type==='Strike').length]].map(([k,v])=>`<div><b>${v}</b><span>${k.toUpperCase()}</span></div>`).join('')}</div><button type="button" class="btn small" onclick="closeModal();go('Attendance')">Open Attendance Center →</button></div><div class="settingsGroup"><h3>Attendance</h3><div class="two">${formField('attDate',new Date().toISOString().slice(0,10),'date')}<div class="field"><label>STATUS</label><select name="attStatus"><option>Absent</option><option>Excused</option></select></div></div>${attendance.map((x,i)=>({x,i})).reverse().map(({x,i})=>`<div class="row"><div><b>${esc(x.start_date||'')}</b><div class="sub">${esc(x.record_type||'')}</div></div><button type="button" class="btn small danger delAttendance" data-index="${i}">Delete</button></div>`).join('')||empty()}<button type="button" id="addAttendance" class="btn small">+ Attendance</button></div>
- <div class="settingsGroup"><h3>Warnings / Strikes</h3>${formField('warningReason')}<div class="two">${formField('warningDate',new Date().toISOString().slice(0,10),'date')}<div class="field"><label>TYPE</label><select name="warningType"><option>Warning</option><option>Strike</option></select></div></div>${warnings.map((x,i)=>({x,i})).reverse().map(({x,i})=>`<div class="row"><div><b>${esc(x.record_type||'Warning')}</b><div class="sub">${esc(x.reason||'')} · ${esc(x.start_date||'')}</div></div><button type="button" class="btn small danger delWarning" data-index="${i}">Delete</button></div>`).join('')||empty()}<button type="button" id="addWarning" class="btn small">+ Warning / Strike</button></div>
+ <div class="settingsGroup"><h3>ATTENDANCE & DISCIPLINE PROFILE</h3><div class="wxrc-att-stats">${[['Absences',attendance.filter(x=>x.record_type==='Absence').length],['Excused',attendance.filter(x=>x.record_type==='Excused').length],['Warnings',warnings.filter(x=>x.record_type==='Warning').length],['Strikes',warnings.filter(x=>x.record_type==='Strike').length]].map(([k,v])=>`<div><b>${v}</b><span>${k.toUpperCase()}</span></div>`).join('')}</div><button type="button" class="btn small" onclick="closeModal();go('Attendance')">Open Attendance Center →</button></div> <div class="settingsGroup"><h3>ATTENDANCE HISTORY (READ ONLY)</h3><p class="sub">All attendance and disciplinary changes are managed exclusively in Attendance Center.</p>${(records||[]).slice(0,8).map(x=>`<div class="row"><div><b>${esc(x.record_type||'')}</b><div class="sub">${esc(x.start_date||'')} · ${esc(x.reason||'')}</div></div></div>`).join('')||empty()}<button type="button" class="btn small" onclick="closeModal();wxrcTab='History';go('Attendance')">VIEW ATTENDANCE HISTORY →</button></div>
  <div class="settingsGroup"><h3>Brand Transfer</h3><div class="two"><div class="field"><label>FROM</label><select name="fromBrand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div><div class="field"><label>TO</label><select name="toBrand"><option>RAW</option><option>SmackDown</option><option>NXT</option><option>Unassigned</option></select></div></div>${formField('transferDate',new Date().toISOString().slice(0,10),'date')}${transfers.map((x,i)=>({x,i})).reverse().map(({x,i})=>`<div class="row"><div><b>${esc(x.from||'')} → ${esc(x.to||'')}</b><div class="sub">${esc(x.start_date||'')}</div></div><button type="button" class="btn small danger delTransfer" data-index="${i}">Delete</button></div>`).join('')||empty()}<button type="button" id="addTransfer" class="btn small">+ Transfer</button></div>
  <div class="settingsGroup"><h3>Gallery</h3><div class="sub">Additional image URLs for this Superstar.</div>${formField('galleryUrl')}<button type="button" id="addGallery" class="btn small">+ Add Image</button><div class="superGrid" style="margin-top:10px">${gallery.map(url=>`<img src="${esc(url)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px">`).join('')}</div></div>
  <button class="btn primary full">Save Management Record</button></form>`);
  const save=async()=>{let row={superstar_id:id,availability:smForm.availability.value,transfers,gallery};let r=m.id?await sb.from('superstar_management').update(row).eq('id',m.id):await sb.from('superstar_management').insert(row);if(r.error){alert(r.error.message);return false}if(!m.id){await loadOnlineData();m=(db.superstarManagement||[]).find(x=>x.superstar_id===id)||m}return true};
  const refreshManagement=()=>manageSuperstar(id);
- const writeAttendance=async(record)=>{const {error}=await sb.from('wxrc_attendance').insert({superstar_id:id,...record});if(error){alert('Attendance: '+error.message);return}refreshManagement()};
- const deleteAttendance=async(record)=>{if(!record||!confirm('Delete this record?'))return;const {error}=await sb.from('wxrc_attendance').delete().eq('id',record.id);if(error)return alert(error.message);refreshManagement()};
- document.querySelectorAll('.delAttendance').forEach(b=>b.onclick=()=>deleteAttendance(attendance[Number(b.dataset.index)]));
- document.querySelectorAll('.delWarning').forEach(b=>b.onclick=()=>deleteAttendance(warnings[Number(b.dataset.index)]));
- addAttendance.onclick=()=>{const status=smForm.elements.namedItem('attStatus').value;writeAttendance({start_date:smForm.elements.namedItem('attDate').value,record_type:status==='Absent'?'Absence':status,reason:'Recorded in Manage Superstar',notes:''})};
- addWarning.onclick=()=>{const reason=smForm.elements.namedItem('warningReason').value.trim();if(!reason)return alert('Enter a reason');writeAttendance({start_date:smForm.elements.namedItem('warningDate').value,record_type:smForm.elements.namedItem('warningType').value,reason,notes:''})};
  document.querySelectorAll('.delTransfer').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this Brand Transfer record?'))return;transfers.splice(Number(b.dataset.index),1);if(await save())manageSuperstar(id)});
  addTransfer.onclick=async()=>{let from=smForm.fromBrand.value,to=smForm.toBrand.value;transfers.push({date:smForm.transferDate.value,from,to});if(await save()){let r=await sb.from('superstars').update({brand:to}).eq('id',id);if(r.error)return alert(r.error.message);await onlineActivity('Transferred '+s.name+' from '+from+' to '+to);await loadOnlineData();manageSuperstar(id)}};
  addGallery.onclick=async()=>{let u=smForm.galleryUrl.value.trim();if(u){gallery.push(u);if(await save())manageSuperstar(id)}};
