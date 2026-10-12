@@ -587,15 +587,30 @@ async function wxrcSaveAllAbsences(){
  const btn=document.getElementById('wxrcSaveAllBtn');if(btn)btn.disabled=true;
  let done=0;const errors=[];
  for(const [star,change] of [...wxrcPendingAbsences]){
-  const old=wxrcCheckins.find(x=>x.superstar_id===star);let result;
-  if(change.action==='delete')result=old?await sb.from('wxrc_show_checkins').delete().eq('id',old.id):{error:null};
-  else if(old)result=await sb.from('wxrc_show_checkins').update({status:'Absent',reason:change.reason,notes:change.notes,checkin_date:change.date}).eq('id',old.id);
-  else result=await sb.from('wxrc_show_checkins').insert({show_id:wxrcShowId,superstar_id:star,status:'Absent',checkin_date:change.date,reason:change.reason,notes:change.notes});
+  const old=wxrcCheckins.find(x=>x.superstar_id===star);
+  let result,checkinId=old?.id;
+  if(change.action==='delete'){
+   if(old){
+    const a=await sb.from('wxrc_attendance').delete().eq('source_checkin_id',old.id);
+    if(a.error){errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': Attendance sync: '+a.error.message);continue}
+    result=await sb.from('wxrc_show_checkins').delete().eq('id',old.id);
+   }else result={error:null};
+  }else{
+   const payload={status:'Absent',reason:change.reason,notes:change.notes,checkin_date:change.date};
+   if(old)result=await sb.from('wxrc_show_checkins').update(payload).eq('id',old.id).select('id').single();
+   else result=await sb.from('wxrc_show_checkins').insert({...payload,show_id:wxrcShowId,superstar_id:star}).select('id').single();
+   if(!result.error){
+    checkinId=result.data?.id||checkinId;
+    const record={superstar_id:star,record_type:'Absence',reason:change.reason,start_date:change.date,end_date:null,notes:change.notes||'',source_checkin_id:checkinId};
+    const sync=await sb.from('wxrc_attendance').upsert(record,{onConflict:'source_checkin_id'});
+    if(sync.error){errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': Attendance sync: '+sync.error.message);continue}
+   }
+  }
   if(result.error)errors.push((db.superstars.find(x=>x.id===star)?.name||star)+': '+result.error.message);
   else{done++;wxrcPendingAbsences.delete(star)}
  }
- if(errors.length)alert('Some records could not be saved:\n'+errors.join('\n'));
- if(done){toastMsg(done+' attendance change(s) saved');await attendancePage();wxrcTab='Check-in';attendanceRender()}
+ if(errors.length)alert('Some records could not be saved:\\n'+errors.join('\\n'));
+ if(done){toastMsg(done+' change(s) saved to Check-in and Attendance');await attendancePage();wxrcTab='Check-in';attendanceRender()}
  else wxrcUpdatePendingCount();
 }
 async function wxrcRenderExcuseRequests(parent){
