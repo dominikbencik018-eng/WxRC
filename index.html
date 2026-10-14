@@ -101,6 +101,13 @@ html[data-wxrc-device="mobile"] .titleGrid.championsSingleColumn{grid-template-c
 html[data-wxrc-device="pc"] .titleGrid.championsSingleColumn{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
 .titleGrid.championsSingleColumn .titleCard{min-width:0;}
 .titleGrid.championsSingleColumn .titleCard .info{overflow-wrap:anywhere;}
+
+/* v7.1: Show the current reign description in the photo hero as well as in history. */
+.historyHero{display:flex;align-items:flex-end;min-height:430px;height:auto!important}
+.historyHero img{position:absolute;inset:0;width:100%;height:100%!important;object-fit:cover}
+.historyHero .shade{inset:0;background:linear-gradient(180deg,transparent 10%,#050608 92%)}
+.historyHero .copy{position:relative;left:auto;right:auto;bottom:auto;width:100%;padding:130px 20px 22px}
+.historyHero .heroReignNotes{font-size:15px;line-height:1.5;color:#fff;margin-top:15px;overflow-wrap:anywhere}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script>
@@ -543,11 +550,13 @@ async function wxrcCheckinPage(){
  wxrcCheckins=(data||[]).map(x=>({...x,status:'Absent',checkin_date:x.start_date}));
  const stars=(isManagement()?db.superstars:db.superstars.filter(x=>x.id===current?.superstarId)).filter(x=>!/^(VACANT|VACATE) CHAMPIONSHIP$/i.test(x.name||'')).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
  document.getElementById('wxrcCheckRows').innerHTML=stars.map(st=>{
-  const r=wxrcCheckins.find(x=>x.superstar_id===st.id),pending=wxrcPendingAbsences.get(st.id),absent=pending?pending.action==='save':!!r;
-  const label=absent?'ABSENT':'NOT MARKED';
+  const r=wxrcCheckins.find(x=>x.superstar_id===st.id),pending=wxrcPendingAbsences.get(st.id);
+  // Red indicates ONLY an unsaved selection. Previously saved absences stay in History.
+  const absent=!!pending&&pending.action==='save';
+  const label=absent?'ABSENT':r?'SAVED IN HISTORY':'NOT MARKED';
   return `<button type="button" class="wxrc-checkin-card ${absent?'is-absent':''}" data-name="${esc((st.name||'').toLowerCase())}" data-star="${esc(st.id)}" aria-pressed="${absent}" ${isManagement()?`onclick="wxrcOpenAbsence('${esc(st.id)}')"`:'disabled'}>
   ${st.image?`<img src="${esc(st.image)}" alt="" loading="lazy">`:'<span class="wxrc-checkin-placeholder">★</span>'}
-  <span class="wxrc-checkin-card-info"><strong>${esc(st.name||'Superstar')}</strong><small>${esc(st.brand||'WxRC')}</small><em>${absent?'✕ ':''}${label}</em>${absent&&(pending?.reason||r?.reason)?`<small class="wxrc-card-reason">${esc(pending?.reason||r?.reason)}</small>`:''}</span></button>`;
+  <span class="wxrc-checkin-card-info"><strong>${esc(st.name||'Superstar')}</strong><small>${esc(st.brand||'WxRC')}</small><em>${absent?'✕ ':''}${label}</em>${absent&&pending?.reason?`<small class="wxrc-card-reason">${esc(pending.reason)}</small>`:''}</span></button>`;
  }).join('')||'<p class="sub">No Superstar profiles found.</p>';
  wxrcUpdateCheckinCount();wxrcUpdatePendingCount();
 }
@@ -560,7 +569,7 @@ function wxrcUpdatePendingCount(){
  if(el)el.textContent=n+' unsaved change'+(n===1?'':'s');if(btn)btn.disabled=!n;
 }
 function wxrcFilterCheckinCards(q){document.querySelectorAll('.wxrc-checkin-card').forEach(c=>{c.style.display=(c.dataset.name||'').includes(q.toLowerCase())?'':'none'});}
-function wxrcUpdateCheckinCount(){const count=wxrcCheckins.filter(x=>x.status==='Absent').length;const el=document.getElementById('wxrcCheckinCount');if(el)el.textContent=`${count} marked absent`;}
+function wxrcUpdateCheckinCount(){const count=[...wxrcPendingAbsences.values()].filter(x=>x.action==='save').length;const el=document.getElementById('wxrcCheckinCount');if(el)el.textContent=`${count} selected for saving`;}
 function wxrcOpenAbsence(star){
  if(!isManagement()||wxrcCheckinBusy.has(star))return;
  const st=db.superstars.find(x=>x.id===star),old=wxrcCheckins.find(x=>x.superstar_id===star);
@@ -603,7 +612,7 @@ async function wxrcSaveAllAbsences(){
   done++;wxrcPendingAbsences.delete(star);
  }
  if(errors.length)alert('Some records could not be saved:\n'+errors.join('\n'));
- if(done){toastMsg(done+' record(s) saved directly to Attendance Center');await attendancePage();wxrcTab='Check-in';attendanceRender()}
+ if(done){toastMsg(done+' record(s) saved — selection cleared');await attendancePage();wxrcTab='Check-in';attendanceRender()}
  else wxrcUpdatePendingCount();
 }
 async function wxrcRenderExcuseRequests(parent){
@@ -853,7 +862,9 @@ function championshipHistory(titleId){
  let rows=[];
  if(c)rows.push({id:c.id,name:s?.name||'Unknown Superstar',dateWon:c.dateWon,dateLost:'',current:true,notes:c.notes||''});
  hist.forEach(h=>rows.push({id:h.id,name:h.superstarName||db.superstars.find(x=>x.id===h.superstarId)?.name||'Unknown Superstar',dateWon:h.dateWon,dateLost:h.dateLost,current:false,notes:h.notes||''}));
- view.innerHTML=`<div class="sectionHead"><div><button type="button" class="btn ghost small" id="championsBackBtn">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img loading="lazy" decoding="async" src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div style="margin-top:10px;line-height:1.45">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#333">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
+ // History is ordered newest to oldest. The following reign is the previous recorded holder.
+ rows=rows.map((r,i)=>({...r,previousChampion:rows[i+1]?.name||''}));
+ view.innerHTML=`<div class="sectionHead"><div><button type="button" class="btn ghost small" id="championsBackBtn">← Champions</button><h2 style="margin-top:12px">${esc(t?.name||'Championship')}</h2><div class="sub">Championship history</div></div></div>${c?`<div class="historyHero">${(c.image||s?.image)?`<img loading="lazy" decoding="async" src="${esc(c.image||s.image)}">`:''}<div class="shade"></div><div class="copy"><span class="badge gold">CURRENT CHAMPION</span><h1>${esc(s?.name||'Unknown Superstar')}</h1><div>${mdy(c.dateWon)} – PRESENT</div><div class="days" style="font-size:20px;margin-top:4px">${reignTime(c.dateWon)}</div>${c.notes?`<div class="heroReignNotes">${esc(c.notes)}</div>`:''}</div></div>`:''}<div class="historyList">${rows.map(r=>`<div class="historyRow"><div class="historyName">${esc(r.name)}</div><div class="historyDates">${mdy(r.dateWon)}${r.current?' - PRESENT':` - ${mdy(r.dateLost)}`}</div><div class="historyDays">${reignTime(r.dateWon,r.dateLost)}</div>${r.previousChampion?`<div style="margin-top:12px;font-size:13px;color:#d8bb75;font-weight:700">PREVIOUS CHAMPION: ${esc(r.previousChampion)}</div>`:''}${r.notes?`<div style="margin-top:13px;font-size:15px;line-height:1.5;color:#f5f0e7;overflow-wrap:anywhere">${esc(r.notes)}</div>`:''}${canEdit()&&!r.current?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:13px"><button class="btn small blue" onclick="editHistory('${r.id}','${titleId}')">✎ Edit History</button><button class="btn small danger" onclick="deleteHistory('${r.id}','${titleId}')">− Delete History</button></div>`:''}</div>`).join('')||`<div class="historyRow">No championship history yet.</div>`}</div>`;
  const backBtn=document.getElementById('championsBackBtn');
  if(backBtn){
   backBtn.addEventListener('click',function(e){
